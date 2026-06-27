@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Qibla Line icon">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#18312d"/>
+      <stop offset="62%" stop-color="#0b1412"/>
+      <stop offset="100%" stop-color="#050807"/>
+    </radialGradient>
+    <linearGradient id="line" x1="130" y1="410" x2="382" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f4cf7a"/>
+      <stop offset="1" stop-color="#d69b30"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="172" fill="none" stroke="#33544d" stroke-width="2" opacity=".55"/>
+  <circle cx="256" cy="256" r="94" fill="none" stroke="#8b7951" stroke-width="2" opacity=".4"/>
+  <path d="M144 378 360 122" stroke="url(#line)" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="144" cy="378" r="30" fill="#f6dfaa" stroke="#7d5b1f" stroke-width="8"/>
+  <rect x="334" y="96" width="56" height="56" rx="12" fill="#111917" stroke="#f4cf7a" stroke-width="10" transform="rotate(45 362 124)"/>
+</svg>
+
