@@ -48,7 +48,10 @@ export function CompassOverlay({
         <span>Map rotation</span>
         <b>{mapBearing.toFixed(0)}°</b>
       </div>
-      <p>{instruction}</p>
+      <div className="qibla-cue" role="status">
+        <span className="kaaba-symbol" aria-hidden="true" />
+        <p>{instruction}</p>
+      </div>
       {reading ? (
         <small>
           {reading.source === "webkit" ? "iPhone compass" : `${reading.source} heading`}

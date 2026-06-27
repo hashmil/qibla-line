@@ -32,7 +32,7 @@ export function formatRelativeBearing(value: number): string {
 export function formatTurnInstruction(relative: number): string {
   const turn = normalise180(relative);
   if (Math.abs(turn) < 2) {
-    return "Phone is aligned with the Qibla";
+    return "Phone is aligned";
   }
 
   return `Turn phone ${Math.abs(turn).toFixed(0)}° ${turn > 0 ? "clockwise" : "anticlockwise"}`;
