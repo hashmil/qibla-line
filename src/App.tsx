@@ -31,32 +31,42 @@ function preferCompassReading(current: CompassReading | null, next: CompassReadi
   return next;
 }
 
+function shouldReplaceCompassReading(current: CompassReading | null, next: CompassReading): boolean {
+  if (!current) return true;
+  if (current.source !== next.source) return true;
+  if (current.accuracy !== next.accuracy) return true;
+
+  return Math.abs(normalise180(next.heading - current.heading)) >= 0.5;
+}
+
 function geolocationErrorMessage(error: GeolocationPositionError | Error | null): string {
   if (!("geolocation" in navigator)) {
-    return "Location is not supported here. Dubai is selected for now.";
+    return "Location is not supported here. Your current selection is unchanged.";
   }
 
   if (!window.isSecureContext && window.location.hostname !== "localhost") {
-    return "Location needs HTTPS. Dubai is selected for now.";
+    return "Location needs HTTPS. Your current selection is unchanged.";
   }
 
   if (!error || !("code" in error)) {
-    return "Location could not be found. Dubai is selected for now.";
+    return "Location could not be found. Your current selection is unchanged.";
   }
 
   if (error.code === error.PERMISSION_DENIED) {
-    return "Location permission was denied. Dubai is selected for now.";
+    return "Location permission was denied. Your current selection is unchanged.";
   }
 
   if (error.code === error.TIMEOUT) {
-    return "Location timed out. Dubai is selected for now.";
+    return "Location timed out. Your current selection is unchanged.";
   }
 
-  return "Location is unavailable. Dubai is selected for now.";
+  return "Location is unavailable. Your current selection is unchanged.";
 }
 
 export default function App() {
   const mapRef = useRef<MapViewHandle | null>(null);
+  const pendingCompassReadingRef = useRef<CompassReading | null>(null);
+  const compassFrameRef = useRef<number | null>(null);
   const [location, setLocation] = useState<AppLocation>(DEFAULT_LOCATION);
   const [mapBearing, setMapBearing] = useState(0);
   const [introVisible, setIntroVisible] = useState(true);
@@ -75,7 +85,22 @@ export default function App() {
     const handleOrientation = (event: DeviceOrientationEvent) => {
       const nextReading = getCompassReading(event);
       if (nextReading) {
-        setCompassReading((current) => preferCompassReading(current, nextReading));
+        pendingCompassReadingRef.current = preferCompassReading(pendingCompassReadingRef.current, nextReading);
+
+        if (compassFrameRef.current !== null) return;
+
+        compassFrameRef.current = window.requestAnimationFrame(() => {
+          compassFrameRef.current = null;
+          const pendingReading = pendingCompassReadingRef.current;
+          pendingCompassReadingRef.current = null;
+
+          if (!pendingReading) return;
+
+          setCompassReading((current) => {
+            const preferredReading = preferCompassReading(current, pendingReading);
+            return shouldReplaceCompassReading(current, preferredReading) ? preferredReading : current;
+          });
+        });
       }
     };
 
@@ -85,6 +110,11 @@ export default function App() {
     return () => {
       window.removeEventListener("deviceorientationabsolute", handleOrientation);
       window.removeEventListener("deviceorientation", handleOrientation);
+      pendingCompassReadingRef.current = null;
+      if (compassFrameRef.current !== null) {
+        window.cancelAnimationFrame(compassFrameRef.current);
+        compassFrameRef.current = null;
+      }
     };
   }, [compassStatus]);
 
@@ -96,8 +126,8 @@ export default function App() {
 
   function useBrowserLocation() {
     if (!("geolocation" in navigator) || (!window.isSecureContext && window.location.hostname !== "localhost")) {
-      setLocation(DEFAULT_LOCATION);
       setIntroVisible(false);
+      setIsLocating(false);
       setMessage(geolocationErrorMessage(null));
       return;
     }
@@ -123,7 +153,6 @@ export default function App() {
         );
       },
       (error) => {
-        setLocation(DEFAULT_LOCATION);
         setIntroVisible(false);
         setIsLocating(false);
         setMessage(geolocationErrorMessage(error));
@@ -164,7 +193,6 @@ export default function App() {
       <MapView
         ref={mapRef}
         location={location}
-        qiblaBearing={qibla.bearing}
         followHeading={compassStatus === "active" ? compassReading?.heading : null}
         onBearingChange={setMapBearing}
       />

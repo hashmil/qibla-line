@@ -14,7 +14,6 @@ export type MapViewHandle = {
 
 type MapViewProps = {
   location: AppLocation;
-  qiblaBearing: number;
   followHeading?: number | null;
   onBearingChange: (bearing: number) => void;
 };
@@ -30,7 +29,7 @@ function createMarkerElement(className: string, label: string): HTMLElement {
 }
 
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
-  { location, qiblaBearing, followHeading = null, onBearingChange },
+  { location, followHeading = null, onBearingChange },
   ref
 ) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);

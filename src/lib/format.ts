@@ -26,7 +26,7 @@ export function formatRelativeBearing(value: number): string {
     return "straight up";
   }
 
-  return `${Math.abs(relative).toFixed(0)}° ${relative > 0 ? "clockwise" : "counter-clockwise"}`;
+  return `${Math.abs(relative).toFixed(0)}° ${relative > 0 ? "clockwise" : "anticlockwise"}`;
 }
 
 export function formatTurnInstruction(relative: number): string {
@@ -35,6 +35,5 @@ export function formatTurnInstruction(relative: number): string {
     return "Phone is aligned with the Qibla";
   }
 
-  return `Turn phone ${Math.abs(turn).toFixed(0)}° ${turn > 0 ? "clockwise" : "counter-clockwise"}`;
+  return `Turn phone ${Math.abs(turn).toFixed(0)}° ${turn > 0 ? "clockwise" : "anticlockwise"}`;
 }
-

@@ -40,8 +40,16 @@ export function CitySearch({ onSelect, compact = false }: CitySearchProps) {
 
   function submitManual(event: FormEvent) {
     event.preventDefault();
-    const parsedLat = Number(lat);
-    const parsedLon = Number(lon);
+    const trimmedLat = lat.trim();
+    const trimmedLon = lon.trim();
+
+    if (!trimmedLat || !trimmedLon) {
+      setManualError("Enter latitude and longitude.");
+      return;
+    }
+
+    const parsedLat = Number(trimmedLat);
+    const parsedLon = Number(trimmedLon);
 
     if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLon)) {
       setManualError("Enter numbers for latitude and longitude.");
@@ -128,4 +136,3 @@ export function CitySearch({ onSelect, compact = false }: CitySearchProps) {
     </div>
   );
 }
-
