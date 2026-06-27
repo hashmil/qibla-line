@@ -200,6 +200,7 @@ input:focus-visible {
 .command-row button,
 .rotation-grid button,
 .sheet-handle,
+.compact-location-action,
 .primary-action,
 .secondary-location,
 .compass-button,
@@ -326,6 +327,7 @@ h1 {
 
 .primary-action,
 .secondary-location,
+.compact-location-action,
 .command-row button,
 .rotation-grid button,
 .compass-button,
@@ -362,6 +364,7 @@ h1 {
 .compass-button:active,
 .choose-city-toggle:active,
 .advanced-toggle:active,
+.compact-location-action:active,
 .city-results button:active {
   transform: translateY(1px) scale(0.99);
 }
@@ -429,6 +432,19 @@ h1 {
   color: var(--muted);
   font-size: 0.78rem;
   text-align: center;
+}
+
+.compact-location-action {
+  width: 100%;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  margin-bottom: 6px;
+  border: 1px solid rgba(74, 163, 255, 0.24);
+  background: rgba(74, 163, 255, 0.12);
+  color: #145b8b;
+  font-size: 0.78rem;
+  font-weight: 840;
 }
 
 .command-row {

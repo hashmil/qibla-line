@@ -13,6 +13,7 @@ type ControlSheetProps = {
   onUseLocation: () => void;
   isLocating: boolean;
   message?: string;
+  showUseLocationShortcut?: boolean;
   compassStatus: CompassStatus;
   compassReading: CompassReading | null;
   onToggleCompass: () => void;
@@ -28,6 +29,7 @@ export function ControlSheet({
   onUseLocation,
   isLocating,
   message,
+  showUseLocationShortcut = false,
   compassStatus,
   compassReading,
   onToggleCompass,
@@ -56,6 +58,13 @@ export function ControlSheet({
       </button>
 
       <p className="instruction-line">Align roads or walls, then read the gold line.</p>
+
+      {!expanded && showUseLocationShortcut ? (
+        <button className="compact-location-action" type="button" onClick={onUseLocation} disabled={isLocating}>
+          <LocateFixed aria-hidden="true" size={16} />
+          {isLocating ? "Finding location" : "Use my location"}
+        </button>
+      ) : null}
 
       <div className="command-row">
         <button

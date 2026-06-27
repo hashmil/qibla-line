@@ -212,6 +212,7 @@ export default function App() {
           onUseLocation={useBrowserLocation}
           isLocating={isLocating}
           message={message}
+          showUseLocationShortcut={location.source !== "geolocation" && !compassActive}
           compassStatus={compassStatus}
           compassReading={compassReading}
           onToggleCompass={toggleCompass}
