@@ -65,6 +65,8 @@ function geolocationErrorMessage(error: GeolocationPositionError | Error | null)
 
 export default function App() {
   const mapRef = useRef<MapViewHandle | null>(null);
+  const locationRequestIdRef = useRef(0);
+  const compassRequestIdRef = useRef(0);
   const pendingCompassReadingRef = useRef<CompassReading | null>(null);
   const compassFrameRef = useRef<number | null>(null);
   const [location, setLocation] = useState<AppLocation>(DEFAULT_LOCATION);
@@ -119,12 +121,17 @@ export default function App() {
   }, [compassStatus]);
 
   function selectLocation(nextLocation: AppLocation) {
+    locationRequestIdRef.current += 1;
     setLocation(nextLocation);
     setIntroVisible(false);
+    setIsLocating(false);
     setMessage("");
   }
 
   function useBrowserLocation() {
+    const requestId = locationRequestIdRef.current + 1;
+    locationRequestIdRef.current = requestId;
+
     if (!("geolocation" in navigator) || (!window.isSecureContext && window.location.hostname !== "localhost")) {
       setIntroVisible(false);
       setIsLocating(false);
@@ -137,6 +144,8 @@ export default function App() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (locationRequestIdRef.current !== requestId) return;
+
         setLocation({
           label: "My location",
           lat: position.coords.latitude,
@@ -153,6 +162,8 @@ export default function App() {
         );
       },
       (error) => {
+        if (locationRequestIdRef.current !== requestId) return;
+
         setIntroVisible(false);
         setIsLocating(false);
         setMessage(geolocationErrorMessage(error));
@@ -167,22 +178,28 @@ export default function App() {
 
   async function toggleCompass() {
     if (compassStatus === "active" || compassStatus === "requesting") {
+      compassRequestIdRef.current += 1;
       setCompassStatus("idle");
       setCompassReading(null);
       return;
     }
 
+    const requestId = compassRequestIdRef.current + 1;
+    compassRequestIdRef.current = requestId;
     setCompassStatus("requesting");
     try {
       const permission = await requestCompassPermission();
+      if (compassRequestIdRef.current !== requestId) return;
       setCompassStatus(permission === "granted" ? "active" : permission);
     } catch {
+      if (compassRequestIdRef.current !== requestId) return;
       setCompassStatus("error");
     }
   }
 
   function stopCompassFollow() {
     if (compassStatus === "active" || compassStatus === "requesting") {
+      compassRequestIdRef.current += 1;
       setCompassStatus("idle");
       setCompassReading(null);
     }
@@ -193,7 +210,7 @@ export default function App() {
       <MapView
         ref={mapRef}
         location={location}
-        followHeading={compassStatus === "active" ? compassReading?.heading : null}
+        followHeading={compassStatus === "active" && compassReading ? compassReading.heading : null}
         onBearingChange={setMapBearing}
       />
       <StatusPill

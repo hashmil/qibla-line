@@ -66,6 +66,8 @@ export function ControlSheet({
         </button>
       ) : null}
 
+      {!expanded && message ? <p className="status-message compact-status-message">{message}</p> : null}
+
       <div className="command-row">
         <button
           type="button"

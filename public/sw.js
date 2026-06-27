@@ -1,10 +1,25 @@
-const SHELL_CACHE = "qibla-line-shell-v2";
+const SHELL_CACHE = "qibla-line-shell-v3";
 const SHELL_ASSETS = ["/", "/manifest.webmanifest", "/icons/icon.svg", "/icons/icon-192.png", "/icons/icon-512.png"];
 
+function getShellAssetUrls(html) {
+  const matches = html.matchAll(/(?:href|src)="([^"]+)"/g);
+  return [...matches]
+    .map((match) => match[1])
+    .filter((url) => url.startsWith("/assets/"));
+}
+
+async function cacheShell() {
+  const cache = await caches.open(SHELL_CACHE);
+  const response = await fetch("/");
+  const html = await response.clone().text();
+  await cache.put("/", response);
+
+  const urls = [...new Set([...SHELL_ASSETS.filter((url) => url !== "/"), ...getShellAssetUrls(html)])];
+  await cache.addAll(urls);
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL_ASSETS)).then(() => self.skipWaiting())
-  );
+  event.waitUntil(cacheShell().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -53,7 +68,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (SHELL_ASSETS.includes(url.pathname)) {
+  if (SHELL_ASSETS.includes(url.pathname) || url.pathname.startsWith("/assets/")) {
     event.respondWith(cacheFirst(event.request));
     return;
   }

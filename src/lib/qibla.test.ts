@@ -20,11 +20,15 @@ describe("calculateQiblaBearing", () => {
 describe("createGreatCircleCoordinates", () => {
   it("returns a robust LineString coordinate set", () => {
     const coordinates = createGreatCircleCoordinates({ lat: 25.2048, lon: 55.2708 }, KAABA, 112);
+    const first = coordinates[0];
+    const last = coordinates.at(-1);
 
     expect(coordinates).toHaveLength(112);
-    expect(coordinates[0][0]).toBeCloseTo(55.2708, 6);
-    expect(coordinates[0][1]).toBeCloseTo(25.2048, 6);
-    expect(coordinates.at(-1)?.[0]).toBeCloseTo(KAABA.lon, 6);
-    expect(coordinates.at(-1)?.[1]).toBeCloseTo(KAABA.lat, 6);
+    expect(first).toBeDefined();
+    expect(last).toBeDefined();
+    expect(first?.[0]).toBeCloseTo(55.2708, 6);
+    expect(first?.[1]).toBeCloseTo(25.2048, 6);
+    expect(last?.[0]).toBeCloseTo(KAABA.lon, 6);
+    expect(last?.[1]).toBeCloseTo(KAABA.lat, 6);
   });
 });

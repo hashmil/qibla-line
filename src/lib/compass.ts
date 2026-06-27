@@ -45,14 +45,16 @@ export function getCompassReading(event: DeviceOrientationEvent): CompassReading
   const screenAngle = getScreenOrientationAngle();
 
   if (typeof compassEvent.webkitCompassHeading === "number") {
-    return {
+    const reading: CompassReading = {
       heading: normalise360(compassEvent.webkitCompassHeading + screenAngle),
-      accuracy:
-        typeof compassEvent.webkitCompassAccuracy === "number"
-          ? compassEvent.webkitCompassAccuracy
-          : undefined,
       source: "webkit"
     };
+
+    if (typeof compassEvent.webkitCompassAccuracy === "number") {
+      reading.accuracy = compassEvent.webkitCompassAccuracy;
+    }
+
+    return reading;
   }
 
   if (typeof event.alpha === "number") {

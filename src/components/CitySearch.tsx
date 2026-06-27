@@ -13,6 +13,8 @@ function cityLabel(city: City): string {
 }
 
 export function CitySearch({ onSelect, compact = false }: CitySearchProps) {
+  const searchId = compact ? "city-search-compact" : "city-search";
+  const resultsId = compact ? "city-results-compact" : "city-results";
   const [query, setQuery] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [lat, setLat] = useState("");
@@ -78,25 +80,39 @@ export function CitySearch({ onSelect, compact = false }: CitySearchProps) {
       <div className="search-field">
         <Search aria-hidden="true" size={18} />
         <input
-          id={compact ? "city-search-compact" : "city-search"}
+          id={searchId}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           type="search"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={resultsId}
+          aria-expanded={matches.length > 0}
+          aria-haspopup="listbox"
           autoComplete="off"
           placeholder="Search city or country"
-          aria-controls={compact ? "city-results-compact" : "city-results"}
         />
       </div>
-      <div className="city-results" id={compact ? "city-results-compact" : "city-results"} role="listbox">
-        {matches.map((city) => (
-          <button key={`${city.city}-${city.country}`} type="button" onClick={() => chooseCity(city)} role="option">
-            <MapPin aria-hidden="true" size={16} />
-            <span>
-              <strong>{city.city}</strong>
-              {city.country}
-            </span>
-          </button>
-        ))}
+      <div className="city-results" id={resultsId} role="listbox" aria-label="City suggestions">
+        {matches.map((city) => {
+          const label = cityLabel(city);
+          return (
+            <button
+              key={`${city.city}-${city.country}`}
+              type="button"
+              onClick={() => chooseCity(city)}
+              role="option"
+              aria-label={label}
+              aria-selected={query === label}
+            >
+              <MapPin aria-hidden="true" size={16} />
+              <span>
+                <strong>{city.city}</strong>
+                {city.country}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <button

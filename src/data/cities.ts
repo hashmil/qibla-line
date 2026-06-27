@@ -190,5 +190,10 @@ export const CITIES: City[] = [
   { city: "Dakar", country: "Senegal", lat: 14.7167, lon: -17.4677 }
 ];
 
-export const DEFAULT_CITY = CITIES[0];
-
+export const DEFAULT_CITY: City = CITIES[0] ?? {
+  city: "Dubai",
+  country: "United Arab Emirates",
+  region: "Dubai",
+  lat: 25.2048,
+  lon: 55.2708
+};

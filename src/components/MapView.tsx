@@ -86,7 +86,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       return;
     }
 
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "top-left");
     map.dragRotate.enable();
     map.touchZoomRotate.enable();
     map.touchZoomRotate.enableRotation();
