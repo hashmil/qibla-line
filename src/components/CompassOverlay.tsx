@@ -7,6 +7,7 @@ type CompassOverlayProps = {
   status: CompassStatus;
   reading: CompassReading | null;
   qiblaBearing: number;
+  mapBearing: number;
   relativeBearing: number;
   onToggle: () => void;
 };
@@ -15,6 +16,7 @@ export function CompassOverlay({
   status,
   reading,
   qiblaBearing,
+  mapBearing,
   relativeBearing,
   onToggle
 }: CompassOverlayProps) {
@@ -42,6 +44,10 @@ export function CompassOverlay({
         <span style={{ transform: `rotate(${heading ?? 0}deg)` }} />
       </div>
       <strong>{heading === undefined ? "Waiting for heading" : `${heading.toFixed(0)}° heading`}</strong>
+      <div className="compass-map-follow">
+        <span>Map rotation</span>
+        <b>{mapBearing.toFixed(0)}°</b>
+      </div>
       <p>{instruction}</p>
       {reading ? (
         <small>

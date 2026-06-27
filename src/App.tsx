@@ -88,11 +88,6 @@ export default function App() {
     };
   }, [compassStatus]);
 
-  useEffect(() => {
-    if (compassStatus !== "active" || !compassReading) return;
-    mapRef.current?.followHeading(compassReading.heading);
-  }, [compassReading, compassStatus]);
-
   function selectLocation(nextLocation: AppLocation) {
     setLocation(nextLocation);
     setIntroVisible(false);
@@ -166,7 +161,13 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <MapView ref={mapRef} location={location} qiblaBearing={qibla.bearing} onBearingChange={setMapBearing} />
+      <MapView
+        ref={mapRef}
+        location={location}
+        qiblaBearing={qibla.bearing}
+        followHeading={compassStatus === "active" ? compassReading?.heading : null}
+        onBearingChange={setMapBearing}
+      />
       <StatusPill
         bearing={qibla.bearing}
         distanceKm={qibla.distanceKm}
@@ -178,6 +179,7 @@ export default function App() {
         status={compassStatus}
         reading={compassReading}
         qiblaBearing={qibla.bearing}
+        mapBearing={mapBearing}
         relativeBearing={relativeBearing}
         onToggle={toggleCompass}
       />

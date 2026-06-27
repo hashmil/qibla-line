@@ -7,7 +7,6 @@ import { createRasterStyle } from "../lib/mapStyle";
 
 export type MapViewHandle = {
   rotateBy: (degrees: number) => void;
-  followHeading: (heading: number) => void;
   setNorthUp: () => void;
   setQiblaUp: (bearing: number) => void;
   recentre: () => void;
@@ -16,6 +15,7 @@ export type MapViewHandle = {
 type MapViewProps = {
   location: AppLocation;
   qiblaBearing: number;
+  followHeading?: number | null;
   onBearingChange: (bearing: number) => void;
 };
 
@@ -30,7 +30,7 @@ function createMarkerElement(className: string, label: string): HTMLElement {
 }
 
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
-  { location, qiblaBearing, onBearingChange },
+  { location, qiblaBearing, followHeading = null, onBearingChange },
   ref
 ) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -47,12 +47,6 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         const map = mapRef.current;
         if (!map) return;
         map.easeTo({ bearing: map.getBearing() + degrees, duration: 180 });
-      },
-      followHeading(heading: number) {
-        const map = mapRef.current;
-        if (!map) return;
-        map.jumpTo({ bearing: heading });
-        onBearingChange(map.getBearing());
       },
       setNorthUp() {
         mapRef.current?.easeTo({ bearing: 0, duration: 260 });
@@ -193,6 +187,15 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       map.once("load", updateMapData);
     }
   }, [location]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || followHeading === null) return;
+
+    map.setBearing(followHeading);
+    map.triggerRepaint();
+    onBearingChange(map.getBearing());
+  }, [followHeading, onBearingChange]);
 
   return (
     <div className="map-shell" aria-label="Map showing Qibla line">

@@ -724,6 +724,24 @@ h1 {
   line-height: 1;
 }
 
+.compass-map-follow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: rgba(8, 117, 104, 0.08);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.compass-map-follow b {
+  color: var(--teal-strong);
+  font-size: 0.86rem;
+}
+
 .compass-overlay p {
   margin: 0;
   color: var(--ink);
