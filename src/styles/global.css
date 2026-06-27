@@ -684,11 +684,11 @@ h1 {
   right: max(10px, env(safe-area-inset-right));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 7px;
-  width: min(58vw, 236px);
-  min-width: 196px;
+  gap: 5px;
+  width: min(50vw, 202px);
+  min-width: 168px;
   overflow: hidden;
-  padding: 8px;
+  padding: 7px;
   border: 1px solid rgba(8, 117, 104, 0.18);
   border-radius: var(--radius);
   background: rgba(255, 252, 243, 0.88);
@@ -698,7 +698,7 @@ h1 {
 
 .compass-overlay-header {
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   color: var(--teal-strong);
   font-size: 0.76rem;
@@ -725,59 +725,62 @@ h1 {
   color: #8b3022;
 }
 
-.heading-indicator {
-  position: relative;
-  width: 48px;
-  aspect-ratio: 1;
-  margin: 0 auto;
-  border: 1px solid rgba(8, 117, 104, 0.2);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.42);
+.compass-telemetry {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
 }
 
-.heading-indicator span {
-  position: absolute;
-  left: calc(50% - 2px);
-  top: 7px;
-  width: 4px;
-  height: 18px;
-  border-radius: 99px;
-  transform-origin: 50% 17px;
-  background: linear-gradient(180deg, var(--line-strong), var(--coral));
-  box-shadow: 0 0 12px rgba(255, 176, 0, 0.58);
+.compass-telemetry span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 6px;
+  border-radius: 7px;
+  background: rgba(8, 117, 104, 0.08);
 }
 
-.compass-overlay > strong {
-  color: var(--teal-strong);
-  font-size: 1rem;
+.compass-telemetry small {
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 820;
   line-height: 1;
+  text-transform: uppercase;
+}
+
+.compass-telemetry strong {
+  color: var(--teal-strong);
+  font-size: 0.9rem;
+  line-height: 1.1;
 }
 
 .compass-map-follow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 8px;
+  justify-content: center;
+  gap: 6px;
+  padding: 3px 6px;
   border-radius: 7px;
-  background: rgba(8, 117, 104, 0.08);
+  background: rgba(74, 163, 255, 0.1);
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   font-weight: 800;
+  line-height: 1;
 }
 
-.compass-map-follow b {
-  color: var(--teal-strong);
-  font-size: 0.86rem;
+.compass-map-follow span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .qibla-cue {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
-  padding: 7px 8px;
+  padding: 6px;
   border: 1px solid rgba(255, 176, 0, 0.22);
   border-radius: 7px;
   background: rgba(255, 176, 0, 0.12);
@@ -785,8 +788,8 @@ h1 {
 
 .kaaba-symbol {
   position: relative;
-  width: 24px;
-  height: 24px;
+  width: 21px;
+  height: 21px;
   border: 2px solid rgba(255, 201, 71, 0.9);
   border-radius: 5px;
   background: linear-gradient(180deg, var(--teal-strong), #092b28);
@@ -796,9 +799,9 @@ h1 {
 .kaaba-symbol::before {
   content: "";
   position: absolute;
-  left: 4px;
-  right: 4px;
-  top: 6px;
+  left: 3px;
+  right: 3px;
+  top: 5px;
   height: 3px;
   border-radius: 99px;
   background: var(--line-strong);
@@ -807,17 +810,21 @@ h1 {
 .qibla-cue p {
   margin: 0;
   color: var(--ink);
-  font-size: 0.78rem;
+  font-size: 0.73rem;
   font-weight: 760;
-  line-height: 1.25;
+  line-height: 1.18;
   overflow-wrap: anywhere;
   text-align: left;
 }
 
-.compass-overlay small {
+.compass-source {
   color: var(--muted);
-  font-size: 0.68rem;
+  overflow: hidden;
+  font-size: 0.62rem;
+  line-height: 1.1;
   text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .maplibregl-ctrl-attrib {
@@ -868,8 +875,8 @@ h1 {
   }
 
   .compass-overlay {
-    width: min(60vw, 220px);
-    min-width: 190px;
+    width: min(52vw, 190px);
+    min-width: 164px;
   }
 }
 

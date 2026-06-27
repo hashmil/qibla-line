@@ -33,32 +33,38 @@ export function CompassOverlay({
       <div className="compass-overlay-header">
         <span>
           <Compass aria-hidden="true" size={15} />
-          Map follows phone
+          Compass
         </span>
         <button type="button" onClick={onToggle} aria-label="Switch off compass mode">
           <Power aria-hidden="true" size={16} />
         </button>
       </div>
 
-      <div className="heading-indicator" aria-hidden="true">
-        <span style={{ transform: `rotate(${heading ?? 0}deg)` }} />
+      <div className="compass-telemetry" aria-label="Compass readings">
+        <span>
+          <small>Heading</small>
+          <strong>{heading === undefined ? "--" : `${heading.toFixed(0)}°`}</strong>
+        </span>
+        <span>
+          <small>Map</small>
+          <strong>{mapBearing.toFixed(0)}°</strong>
+        </span>
       </div>
-      <strong>{heading === undefined ? "Waiting for heading" : `${heading.toFixed(0)}° heading`}</strong>
+
       <div className="compass-map-follow">
-        <span>Map rotation</span>
-        <b>{mapBearing.toFixed(0)}°</b>
+        <span>Map follows phone</span>
       </div>
       <div className="qibla-cue" role="status">
         <span className="kaaba-symbol" aria-hidden="true" />
         <p>{instruction}</p>
       </div>
       {reading ? (
-        <small>
+        <small className="compass-source">
           {reading.source === "webkit" ? "iPhone compass" : `${reading.source} heading`}
           {reading.accuracy !== undefined ? ` · accuracy ${reading.accuracy.toFixed(0)}°` : ""}
         </small>
       ) : (
-        <small>Waiting for device orientation events</small>
+        <small className="compass-source">Waiting for heading</small>
       )}
     </section>
   );
