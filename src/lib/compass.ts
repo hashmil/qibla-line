@@ -10,6 +10,17 @@ type CompassEvent = DeviceOrientationEvent & {
   webkitCompassAccuracy?: number;
 };
 
+function getScreenOrientationAngle(): number {
+  if (typeof window === "undefined") return 0;
+
+  if (typeof window.screen?.orientation?.angle === "number") {
+    return window.screen.orientation.angle;
+  }
+
+  const legacyWindow = window as Window & { orientation?: number };
+  return typeof legacyWindow.orientation === "number" ? legacyWindow.orientation : 0;
+}
+
 export async function requestCompassPermission(): Promise<"granted" | "denied" | "unsupported"> {
   if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) {
     return "unsupported";
@@ -31,10 +42,11 @@ export async function requestCompassPermission(): Promise<"granted" | "denied" |
 
 export function getCompassReading(event: DeviceOrientationEvent): CompassReading | null {
   const compassEvent = event as CompassEvent;
+  const screenAngle = getScreenOrientationAngle();
 
   if (typeof compassEvent.webkitCompassHeading === "number") {
     return {
-      heading: normalise360(compassEvent.webkitCompassHeading),
+      heading: normalise360(compassEvent.webkitCompassHeading + screenAngle),
       accuracy:
         typeof compassEvent.webkitCompassAccuracy === "number"
           ? compassEvent.webkitCompassAccuracy
@@ -45,11 +57,10 @@ export function getCompassReading(event: DeviceOrientationEvent): CompassReading
 
   if (typeof event.alpha === "number") {
     return {
-      heading: normalise360(360 - event.alpha),
+      heading: normalise360(360 - event.alpha + screenAngle),
       source: event.absolute ? "absolute" : "relative"
     };
   }
 
   return null;
 }
-

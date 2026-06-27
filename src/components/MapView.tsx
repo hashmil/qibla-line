@@ -51,7 +51,8 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       followHeading(heading: number) {
         const map = mapRef.current;
         if (!map) return;
-        map.easeTo({ bearing: heading, duration: 180, easing: (time) => time });
+        map.jumpTo({ bearing: heading });
+        onBearingChange(map.getBearing());
       },
       setNorthUp() {
         mapRef.current?.easeTo({ bearing: 0, duration: 260 });
@@ -67,7 +68,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         });
       }
     }),
-    [location]
+    [location, onBearingChange]
   );
 
   useEffect(() => {

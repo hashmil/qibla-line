@@ -38,9 +38,19 @@ export function CompassOverlay({
         </button>
       </div>
 
+      <div className="heading-indicator" aria-hidden="true">
+        <span style={{ transform: `rotate(${heading ?? 0}deg)` }} />
+      </div>
       <strong>{heading === undefined ? "Waiting for heading" : `${heading.toFixed(0)}° heading`}</strong>
       <p>{instruction}</p>
-      {reading?.accuracy !== undefined ? <small>Accuracy {reading.accuracy.toFixed(0)}°</small> : null}
+      {reading ? (
+        <small>
+          {reading.source === "webkit" ? "iPhone compass" : `${reading.source} heading`}
+          {reading.accuracy !== undefined ? ` · accuracy ${reading.accuracy.toFixed(0)}°` : ""}
+        </small>
+      ) : (
+        <small>Waiting for device orientation events</small>
+      )}
     </section>
   );
 }

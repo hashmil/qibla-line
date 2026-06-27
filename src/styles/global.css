@@ -696,6 +696,28 @@ h1 {
   color: #8b3022;
 }
 
+.heading-indicator {
+  position: relative;
+  width: 48px;
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border: 1px solid rgba(8, 117, 104, 0.2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.heading-indicator span {
+  position: absolute;
+  left: calc(50% - 2px);
+  top: 7px;
+  width: 4px;
+  height: 18px;
+  border-radius: 99px;
+  transform-origin: 50% 17px;
+  background: linear-gradient(180deg, var(--line-strong), var(--coral));
+  box-shadow: 0 0 12px rgba(255, 176, 0, 0.58);
+}
+
 .compass-overlay > strong {
   color: var(--teal-strong);
   font-size: 1rem;

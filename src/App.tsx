@@ -16,6 +16,21 @@ const DEFAULT_LOCATION: AppLocation = {
   source: "fallback"
 };
 
+const COMPASS_SOURCE_PRIORITY: Record<CompassReading["source"], number> = {
+  relative: 0,
+  absolute: 1,
+  webkit: 2
+};
+
+function preferCompassReading(current: CompassReading | null, next: CompassReading): CompassReading {
+  if (!current) return next;
+  if (COMPASS_SOURCE_PRIORITY[next.source] < COMPASS_SOURCE_PRIORITY[current.source]) {
+    return current;
+  }
+
+  return next;
+}
+
 function geolocationErrorMessage(error: GeolocationPositionError | Error | null): string {
   if (!("geolocation" in navigator)) {
     return "Location is not supported here. Dubai is selected for now.";
@@ -59,7 +74,9 @@ export default function App() {
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
       const nextReading = getCompassReading(event);
-      if (nextReading) setCompassReading(nextReading);
+      if (nextReading) {
+        setCompassReading((current) => preferCompassReading(current, nextReading));
+      }
     };
 
     window.addEventListener("deviceorientationabsolute", handleOrientation);
