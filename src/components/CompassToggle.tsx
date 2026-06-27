@@ -11,7 +11,7 @@ export function CompassToggle({ status, reading, onToggle }: CompassToggleProps)
   const statusText =
     status === "active"
       ? reading
-        ? `${reading.heading.toFixed(0)}° heading`
+        ? `Following ${reading.heading.toFixed(0)}°`
         : "Waiting for heading"
       : status === "requesting"
         ? "Requesting compass"

@@ -71,6 +71,11 @@ export default function App() {
     };
   }, [compassStatus]);
 
+  useEffect(() => {
+    if (compassStatus !== "active" || !compassReading) return;
+    mapRef.current?.followHeading(compassReading.heading);
+  }, [compassReading, compassStatus]);
+
   function selectLocation(nextLocation: AppLocation) {
     setLocation(nextLocation);
     setIntroVisible(false);
@@ -135,6 +140,13 @@ export default function App() {
     }
   }
 
+  function stopCompassFollow() {
+    if (compassStatus === "active" || compassStatus === "requesting") {
+      setCompassStatus("idle");
+      setCompassReading(null);
+    }
+  }
+
   return (
     <main className="app-shell">
       <MapView ref={mapRef} location={location} qiblaBearing={qibla.bearing} onBearingChange={setMapBearing} />
@@ -149,6 +161,7 @@ export default function App() {
         status={compassStatus}
         reading={compassReading}
         qiblaBearing={qibla.bearing}
+        relativeBearing={relativeBearing}
         onToggle={toggleCompass}
       />
 
@@ -163,9 +176,18 @@ export default function App() {
 
       {!introVisible ? (
         <ControlSheet
-          onRotate={(degrees) => mapRef.current?.rotateBy(degrees)}
-          onNorthUp={() => mapRef.current?.setNorthUp()}
-          onQiblaUp={() => mapRef.current?.setQiblaUp(qibla.bearing)}
+          onRotate={(degrees) => {
+            stopCompassFollow();
+            mapRef.current?.rotateBy(degrees);
+          }}
+          onNorthUp={() => {
+            stopCompassFollow();
+            mapRef.current?.setNorthUp();
+          }}
+          onQiblaUp={() => {
+            stopCompassFollow();
+            mapRef.current?.setQiblaUp(qibla.bearing);
+          }}
           onRecentre={() => mapRef.current?.recentre()}
           onSelectLocation={selectLocation}
           onUseLocation={useBrowserLocation}

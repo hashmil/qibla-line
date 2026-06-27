@@ -663,9 +663,9 @@ h1 {
   top: calc(max(64px, env(safe-area-inset-top) + 54px));
   right: max(10px, env(safe-area-inset-right));
   display: grid;
-  gap: 8px;
-  width: min(46vw, 188px);
-  min-width: 166px;
+  gap: 7px;
+  width: min(54vw, 220px);
+  min-width: 178px;
   padding: 8px;
   border: 1px solid rgba(8, 117, 104, 0.18);
   border-radius: var(--radius);
@@ -696,66 +696,10 @@ h1 {
   color: #8b3022;
 }
 
-.compass-dial {
-  position: relative;
-  width: 138px;
-  max-width: 100%;
-  aspect-ratio: 1;
-  margin: 0 auto;
-  border: 1px solid rgba(8, 117, 104, 0.2);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, rgba(255, 176, 0, 0.16), transparent 29%),
-    conic-gradient(from 0deg, rgba(8, 117, 104, 0.1), transparent 15deg, transparent 75deg, rgba(8, 117, 104, 0.08) 90deg, transparent 105deg, transparent 100%);
-  box-shadow: inset 0 0 28px rgba(8, 117, 104, 0.08);
-}
-
-.qibla-needle,
-.north-needle {
-  position: absolute;
-  left: calc(50% - 2px);
-  width: 4px;
-  border-radius: 99px;
-  transform-origin: 50% 100%;
-}
-
-.qibla-needle {
-  top: calc(50% - 56px);
-  height: 56px;
-  background: linear-gradient(180deg, var(--line-strong), var(--coral));
-  box-shadow: 0 0 18px rgba(255, 176, 0, 0.72);
-}
-
-.north-needle {
-  top: calc(50% - 46px);
-  height: 46px;
-  background: rgba(8, 117, 104, 0.28);
-}
-
-.dial-centre {
-  position: absolute;
-  inset: calc(50% - 6px);
-  border-radius: 50%;
-  background: var(--teal-strong);
-  box-shadow: 0 0 0 4px rgba(255, 252, 243, 0.8);
-}
-
-.north-label,
-.qibla-label {
-  position: absolute;
-  left: calc(50% - 18px);
-  top: calc(50% - 9px);
-  width: 36px;
-  color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 850;
-  text-align: center;
-  text-transform: uppercase;
-  transform-origin: 50% 9px;
-}
-
-.qibla-label {
-  color: #8b5200;
+.compass-overlay > strong {
+  color: var(--teal-strong);
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .compass-overlay p {
@@ -816,7 +760,7 @@ h1 {
   }
 
   .compass-overlay {
-    min-width: 152px;
+    min-width: 164px;
   }
 }
 

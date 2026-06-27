@@ -11,13 +11,13 @@ Live app: <https://qibla-line.pages.dev>
 - Qibla-up, north-up and re-centre controls.
 - Browser geolocation with city and manual coordinate fallbacks.
 - Searchable local city list with no external geocoding API.
-- Optional compass mode with a map overlay; Qibla is the primary line and north is secondary.
+- Optional compass mode that rotates the map to follow the phone heading, keeping the map's Qibla line as the primary direction cue.
 - PWA manifest, iPhone home-screen metadata and app shell service worker.
 - Client-side only calculations, with no analytics and no custom backend.
 
 ## Why Map Alignment Comes First
 
-Indoor compass readings can drift, especially near metal, chargers, lifts and vehicles. Qibla Line treats the map as the primary reference: align the map visually, then read the gold line. Compass mode is optional and only requested after a tap.
+Indoor compass readings can drift, especially near metal, chargers, lifts and vehicles. Qibla Line treats the map as the primary reference: align the map visually, then read the gold line. Compass mode is optional and only requested after a tap; when enabled, the map rotates to follow the phone heading.
 
 ## Tech Stack
 
@@ -138,6 +138,6 @@ prompt/
 ## Known Limitations
 
 - Geolocation requires HTTPS, except on localhost.
-- Compass mode depends on browser and device support, and may be approximate.
+- Compass mode depends on browser and device support, may be approximate, and rotates the map only after heading data is available.
 - OSM public tiles are suitable for light use. A dedicated tile provider is recommended for heavier public traffic.
 - MapLibre is a substantial dependency, so the production bundle has an expected large-chunk warning.

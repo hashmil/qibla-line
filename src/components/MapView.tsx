@@ -7,6 +7,7 @@ import { createRasterStyle } from "../lib/mapStyle";
 
 export type MapViewHandle = {
   rotateBy: (degrees: number) => void;
+  followHeading: (heading: number) => void;
   setNorthUp: () => void;
   setQiblaUp: (bearing: number) => void;
   recentre: () => void;
@@ -46,6 +47,11 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         const map = mapRef.current;
         if (!map) return;
         map.easeTo({ bearing: map.getBearing() + degrees, duration: 180 });
+      },
+      followHeading(heading: number) {
+        const map = mapRef.current;
+        if (!map) return;
+        map.easeTo({ bearing: heading, duration: 180, easing: (time) => time });
       },
       setNorthUp() {
         mapRef.current?.easeTo({ bearing: 0, duration: 260 });
