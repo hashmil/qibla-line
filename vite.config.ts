@@ -1,5 +1,7 @@
 import { defineConfig } from "vitest/config";
 import type { Plugin } from "vite";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import react from "@vitejs/plugin-react";
 import QRCode from "qrcode";
 
@@ -38,8 +40,32 @@ function shellAssetList(): Plugin {
   };
 }
 
+// /about is the landing page on every device, so phones and Google's phone crawler can read it.
+// It is the built index.html with its own canonical URL and title; the inline script in
+// index.html picks landing mode from the path.
+function aboutPage(): Plugin {
+  const swaps: [string, string][] = [
+    ['<link rel="canonical" href="https://qiblaline.com/" />', '<link rel="canonical" href="https://qiblaline.com/about" />'],
+    ['<meta property="og:url" content="https://qiblaline.com/" />', '<meta property="og:url" content="https://qiblaline.com/about" />'],
+    ["<title>Qibla Line: Qibla direction from the walls of your room</title>", "<title>About Qibla Line: how it finds the Qibla without the compass</title>"]
+  ];
+  return {
+    name: "qibla-line-about",
+    apply: "build",
+    writeBundle(options) {
+      const dir = options.dir ?? "dist";
+      let html = readFileSync(join(dir, "index.html"), "utf8");
+      for (const [from, to] of swaps) {
+        if (!html.includes(from)) throw new Error(`about page: missing ${from}`);
+        html = html.replace(from, to);
+      }
+      writeFileSync(join(dir, "about.html"), html);
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), qrCode(), shellAssetList()],
+  plugins: [react(), qrCode(), shellAssetList(), aboutPage()],
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"]

@@ -1,0 +1,5 @@
+# Search engines and AI crawlers are welcome. A plain summary for AI assistants is at /llms.txt.
+User-agent: *
+Allow: /
+
+Sitemap: https://qiblaline.com/sitemap.xml

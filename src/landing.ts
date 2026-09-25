@@ -2,8 +2,6 @@
 // from the beginning with sound, after which the same button mutes and unmutes.
 // "Replay" always goes back to the start.
 export function setupLanding() {
-  document.title = "Qibla Line: find the Qibla from the walls of your room";
-
   const video = document.getElementById("l-video") as HTMLVideoElement | null;
   const controls = document.getElementById("l-controls");
   const replay = document.getElementById("l-replay") as HTMLButtonElement | null;
@@ -16,8 +14,10 @@ export function setupLanding() {
   video.preload = "auto";
   controls.hidden = false;
 
-  // autoplay as well as play(): a tab opened in the background starts once it is shown
-  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  // autoplay as well as play(): a tab opened in the background starts once it is shown.
+  // Not when the viewer asked for less motion or less data (Data Saver on a phone).
+  const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+  if (!saveData && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     video.autoplay = true;
     video.play().catch(() => undefined);
   }

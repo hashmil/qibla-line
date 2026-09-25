@@ -134,11 +134,29 @@ The tiles are inverted in the style itself for the dark design. On top, building
 Computers get a landing page (the explainer film, how it works, a QR code for qiblaline.com) instead of the app. Phones and tablets get the app exactly as before.
 
 - An inline script at the top of `index.html` picks the mode before first paint. Computers are `(hover: hover) and (pointer: fine) and (min-width: 900px)`; iPads, which report themselves as Macs, are caught by touch support.
+- `/about` shows the landing page on every device, so phones and Google's phone-width crawler can read it. The build writes `about.html` from the built `index.html` with its own canonical URL and title (`vite.config.ts`). On phones the QR codes give way to an "Open Qibla Line" button.
 - `/app`, `?app` and any installed app (display-mode standalone and friends, or iOS `navigator.standalone`) always get the app. The manifest `start_url` is `/app`.
 - `src/main.ts` is the only entry script. For the landing it runs `src/landing.ts` (video, Replay and sound buttons, section reveal); for the app it dynamic-imports `src/boot-app.tsx`, so the map and the app bundle never download for landing visitors.
 - The service worker is registered only by the app. Because the app chunks are no longer named in `index.html`, the build writes `shell-assets.json` listing every script and stylesheet, and the worker precaches from it.
 - The QR code is drawn at build time by a small Vite plugin (`vite.config.ts`, `qrcode` dev dependency).
-- Landing assets live in `public/video/` (the film, 7 MB web encode, and its poster), `public/landing/` (three real app screens) and `public/og.jpg`. The film comes from the explainer project at `~/Dev/personal/qibla-line-explainer`; see `DESIGN.md`, "Desktop landing", for the page's design.
+- Landing assets live in `public/video/` (the film, 7 MB web encode, and its poster), `public/landing/` (three real app screens) and `public/og-card.jpg`. The film comes from the explainer project at `~/Dev/personal/qibla-line-explainer`; see `DESIGN.md`, "Desktop landing", for the page's design.
+
+## Search, Sharing and AI Assistants
+
+- `index.html` carries the title, description, canonical URL, Open Graph and Twitter tags, and JSON-LD structured data (WebSite, WebApplication, VideoObject with the film's transcript, FAQPage). The FAQ markup must match the visible Questions section word for word; change both together.
+- `public/robots.txt` allows every crawler and points to `public/sitemap.xml`, which also lists the film.
+- `public/llms.txt` is a plain markdown summary for AI assistants: what the app does, how, its limits, privacy, the film transcript and links.
+- The manifest has a description, categories and the three app screens as install screenshots.
+- Crawlers that don't run JavaScript see the landing page. Google renders `/` at phone width and so gets the app, with the landing content present but hidden, which is why `/about` exists: the same content, visible at every width, listed in the sitemap.
+
+### Share card
+
+`public/og-card.jpg` (1200x630) is rendered from `design/og-card.html`, which uses the app's fonts and the real Face screen. Render it with Playwright using the installed Chrome, then save as JPEG:
+
+```bash
+npx -y playwright screenshot --channel chrome --viewport-size=1200,630 "file://$PWD/design/og-card.html" og-card.png
+magick og-card.png -quality 88 -sampling-factor 4:4:4 public/og-card.jpg
+```
 
 ## Project Structure
 
@@ -160,7 +178,10 @@ public/
   icons/
   landing/             app screens shown on the landing page
   video/               explainer film and poster
-  og.jpg
+  og-card.jpg          1200x630 share card, from design/og-card.html
+  llms.txt             summary for AI assistants
+  robots.txt
+  sitemap.xml
   manifest.webmanifest
   sw.js
 DESIGN.md              colour and type tokens, and where each came from

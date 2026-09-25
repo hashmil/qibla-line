@@ -14,6 +14,7 @@ html[data-mode="landing"] {
   --text: #d8d2c4;
   --dim: #7c7f84;
   --amber: #ffb23e;
+  --on-amber: #1a1204;
   --radius: 12px;
   --sans: "Chivo", system-ui, -apple-system, sans-serif;
   --mono: "Chivo Mono", ui-monospace, "SF Mono", monospace;
@@ -380,6 +381,32 @@ main {
   color: var(--dim);
 }
 
+/* Questions: plain answers, the same text as the FAQ structured data in index.html */
+.l-faq {
+  scroll-margin-top: 96px;
+}
+
+.l-faq dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px 64px;
+  margin: 48px 0 0;
+}
+
+.l-faq dt {
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 700;
+  text-wrap: pretty;
+}
+
+.l-faq dd {
+  max-width: 52ch;
+  margin: 8px 0 0;
+  color: var(--dim);
+  text-wrap: pretty;
+}
+
 /* Get it: the code again, large */
 .l-get {
   display: flex;
@@ -471,5 +498,139 @@ main {
 
   .l-bearing > .num {
     font-size: 76px;
+  }
+}
+
+/* Phone-only and computer-only pieces: /about shows this page on phones too */
+.l-phone {
+  display: none;
+}
+
+/* The page's one primary action on a phone, amber like the app's own.
+   .landing prefix: the link colour rule above would otherwise win */
+.landing .l-open {
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: var(--radius);
+  background: var(--amber);
+  color: var(--on-amber);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (max-width: 899px) {
+  .l-desk {
+    display: none;
+  }
+
+  .l-phone {
+    display: revert;
+  }
+
+  .l-open.l-phone {
+    display: flex;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .l-bar {
+    padding: 0 16px;
+  }
+
+  .l-nav a[href^="#"] {
+    display: none;
+  }
+
+  .l-nav a.l-phone {
+    color: var(--text);
+  }
+
+  main {
+    gap: 96px;
+    padding: 0 16px;
+  }
+
+  .l-hero {
+    padding-top: 40px;
+  }
+
+  .l-hero h1 {
+    max-width: none;
+    font-size: 39px;
+  }
+
+  .l-lead,
+  .l-why-text p {
+    font-size: 16px;
+  }
+
+  .l-hero .l-lead {
+    margin-top: 16px;
+  }
+
+  .l-film {
+    max-width: none;
+    margin-top: 32px;
+  }
+
+  .l-controls {
+    width: 100%;
+  }
+
+  .l-control {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .l-hero .l-open {
+    margin-top: 32px;
+  }
+
+  .landing h2 {
+    font-size: 31px;
+  }
+
+  .landing .l-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 64px;
+    margin-top: 48px;
+  }
+
+  .l-steps img {
+    max-width: 260px;
+    border-radius: 29px;
+  }
+
+  .l-steps h3,
+  .l-steps p {
+    max-width: 260px;
+  }
+
+  .l-why {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    padding: 64px 0;
+  }
+
+  .l-bearing > .num {
+    font-size: 76px;
+  }
+
+  .l-faq dl {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    margin-top: 32px;
+  }
+
+  .l-get {
+    gap: 16px;
+  }
+
+  .l-foot {
+    flex-direction: column;
+    margin-top: 96px;
+    padding: 24px 16px 40px;
   }
 }

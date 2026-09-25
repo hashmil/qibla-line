@@ -11,42 +11,146 @@
         try {
           var path = location.pathname.replace(/\/+$/, "");
           var forced = path === "/app" || new URLSearchParams(location.search).has("app");
+          // /about is the landing page on every device, so phones (and Google's phone crawler) can read it
+          var about = path === "/about";
           var installed =
             navigator.standalone === true ||
             matchMedia("(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay)").matches;
           // iPadOS reports itself as a Mac, so use touch support to tell them apart
           var ipad = /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
           var computer = matchMedia("(hover: hover) and (pointer: fine) and (min-width: 900px)").matches;
-          root.dataset.mode = forced || installed || ipad || !computer ? "app" : "landing";
+          root.dataset.mode = about ? "landing" : forced || installed || ipad || !computer ? "app" : "landing";
         } catch (error) {
           root.dataset.mode = "app";
         }
       })();
     </script>
+    <title>Qibla Line: Qibla direction from the walls of your room</title>
+    <meta
+      name="description"
+      content="A free Qibla finder that doesn't trust your phone's compass. Line a map up with a wall of your room, then turn until it says you're facing the Qibla."
+    />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1, max-snippet:-1" />
+    <link rel="canonical" href="https://qiblaline.com/" />
+    <meta name="application-name" content="Qibla Line" />
     <meta name="theme-color" content="#07090c" />
+    <meta name="color-scheme" content="dark" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Qibla Line" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>Qibla Line: find the Qibla from the walls of your room</title>
-    <meta
-      name="description"
-      content="Phone compasses drift indoors. Qibla Line finds the Qibla by lining a map up with a wall of your room, then follows your turn with the gyroscope. Free, in the browser, on iPhone and Android."
-    />
-    <link rel="canonical" href="https://qiblaline.com/" />
+
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Qibla Line" />
+    <meta property="og:locale" content="en_GB" />
     <meta property="og:url" content="https://qiblaline.com/" />
     <meta property="og:title" content="Qibla Line: find the Qibla from the walls of your room" />
-    <meta property="og:description" content="Phone compasses drift indoors. Line a map up with a wall of your room instead, then turn until it says you're facing the Qibla." />
-    <meta property="og:image" content="https://qiblaline.com/og.jpg" />
+    <meta property="og:description" content="A free Qibla finder that doesn't trust your phone's compass. Line a map up with a wall, then turn until it says you're facing the Qibla." />
+    <meta property="og:image" content="https://qiblaline.com/og-card.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The Qibla Line app showing Facing the Qibla, with an amber line running across a drawn room" />
+    <meta property="og:image:alt" content="Qibla Line: Find the Qibla from the walls of your room, beside the app's screen reading Facing the Qibla" />
+    <meta property="og:video" content="https://qiblaline.com/video/qibla-line.mp4" />
+    <meta property="og:video:type" content="video/mp4" />
+    <meta property="og:video:width" content="1920" />
+    <meta property="og:video:height" content="1080" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Qibla Line: find the Qibla from the walls of your room" />
+    <meta name="twitter:description" content="A free Qibla finder that doesn't trust your phone's compass. Line a map up with a wall, then turn until it says you're facing the Qibla." />
+    <meta name="twitter:image" content="https://qiblaline.com/og-card.jpg" />
+    <meta name="twitter:image:alt" content="Qibla Line: Find the Qibla from the walls of your room, beside the app's screen reading Facing the Qibla" />
+
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="alternate" type="text/markdown" href="/llms.txt" title="Qibla Line, summary for AI assistants" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://qiblaline.com/#website",
+            "url": "https://qiblaline.com/",
+            "name": "Qibla Line",
+            "inLanguage": "en-GB"
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://qiblaline.com/#app",
+            "name": "Qibla Line",
+            "url": "https://qiblaline.com/",
+            "description": "A Qibla finder that uses the walls of your building instead of the phone's compass. Lay the phone flat with its top edge against a wall, turn a dial until the map lines up with that wall, then turn until the app says you're facing the Qibla. The turn is tracked with the gyroscope.",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "iOS, Android, any modern web browser",
+            "browserRequirements": "Requires JavaScript. Location and motion sensors need HTTPS.",
+            "inLanguage": "en-GB",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Qibla direction from a map lined up with a wall of your room, not the magnetic compass",
+              "Gyroscope turn guidance with a 2 degree facing threshold",
+              "Great-circle bearing and distance to the Kaaba, worked out on the device",
+              "187 cities with their Qibla bearings, plus current location or manual coordinates",
+              "Installs to the Home Screen; no account, no analytics"
+            ],
+            "screenshot": [
+              "https://qiblaline.com/landing/place.webp",
+              "https://qiblaline.com/landing/line-up.webp",
+              "https://qiblaline.com/landing/face.webp"
+            ],
+            "sameAs": ["https://github.com/hashmil/qibla-line"],
+            "subjectOf": { "@id": "https://qiblaline.com/#film" }
+          },
+          {
+            "@type": "VideoObject",
+            "@id": "https://qiblaline.com/#film",
+            "name": "How Qibla Line works",
+            "description": "A 48 second film: why phone compasses drift indoors, then the three steps in the app (Place, Line up, Face) and the line to the Kaaba.",
+            "thumbnailUrl": "https://qiblaline.com/video/poster.jpg",
+            "contentUrl": "https://qiblaline.com/video/qibla-line.mp4",
+            "uploadDate": "2026-09-25",
+            "duration": "PT48S",
+            "inLanguage": "en-GB",
+            "transcript": "Phone compasses drift indoors. Speakers, wiring and steel pull the needle off course. It can look certain and still point the wrong way. 1, Place. Use your location, or pick a city. The map finds where you are. 2, Line up. Lay the phone flat, top edge against a wall. Turn the dial until that wall lines up with the grid. Tap It lines up. Now the map matches your room. 3, Face. Pick it up, hold it flat and turn on the spot. Turn left 38 degrees. Uses the gyroscope, not the compass. Facing the Qibla. Makkah, 258.2 degrees, 1,629 km. Qibla Line, qiblaline.com. Add it to your Home Screen."
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://qiblaline.com/#questions",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How accurate is it?",
+                "acceptedAnswer": { "@type": "Answer", "text": "As accurate as OpenStreetMap's drawing of your building. In well-mapped areas that is usually within a degree or two. The app says you're facing the Qibla when you're within 2 degrees of it." }
+              },
+              {
+                "@type": "Question",
+                "name": "Where does the direction come from?",
+                "acceptedAnswer": { "@type": "Answer", "text": "It is the great-circle bearing from where you are to the Kaaba (21.4225° N, 39.8262° E), the shortest path over the globe, worked out on your phone." }
+              },
+              {
+                "@type": "Question",
+                "name": "What if my phone won't share its motion?",
+                "acceptedAnswer": { "@type": "Answer", "text": "You get a fixed reading instead, such as \"The Qibla is 34° left of the phone's top edge\", with the amber line on the map showing the direction." }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need to install anything?",
+                "acceptedAnswer": { "@type": "Answer", "text": "No. It runs in the browser on iPhone and Android. Add it to your Home Screen and it opens full screen, like any other app. There is no account to make." }
+              },
+              {
+                "@type": "Question",
+                "name": "Is my location stored?",
+                "acceptedAnswer": { "@type": "Answer", "text": "No. Your location is used only on your phone to work out the line, and the app doesn't store it or send it anywhere. The only requests it makes are for map tiles, and there are no analytics." }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div class="landing">
@@ -55,7 +159,8 @@
         <nav class="l-nav" aria-label="Page">
           <a href="#how">How it works</a>
           <a href="#why">Why not the compass</a>
-          <a href="/app">Open the app here anyway</a>
+          <a class="l-desk" href="/app">Open the app here anyway</a>
+          <a class="l-phone" href="/">Open the app</a>
         </nav>
       </header>
 
@@ -88,12 +193,13 @@
                   <span>Play with sound</span>
                 </button>
               </div>
-              <div class="l-scan">
+              <div class="l-scan l-desk">
                 <div class="l-qr-code l-qr-small"><!--qr--></div>
                 <p><strong>Scan to open it on your&nbsp;phone</strong><span class="num">qiblaline.com</span></p>
               </div>
             </div>
           </div>
+          <a class="l-open l-phone" href="/">Open Qibla Line</a>
         </section>
 
         <section class="l-how l-reveal" id="how" aria-labelledby="how-title">
@@ -130,11 +236,39 @@
           </figure>
         </section>
 
+        <section class="l-faq l-reveal" id="questions" aria-labelledby="faq-title">
+          <h2 id="faq-title">Questions</h2>
+          <dl>
+            <div>
+              <dt>How accurate is&nbsp;it?</dt>
+              <dd>As accurate as OpenStreetMap's drawing of your building. In well-mapped areas that is usually within a degree or two. The app says you're facing the Qibla when you're within <span class="num">2°</span> of&nbsp;it.</dd>
+            </div>
+            <div>
+              <dt>Where does the direction come&nbsp;from?</dt>
+              <dd>It is the great-circle bearing from where you are to the Kaaba (<span class="num">21.4225°&nbsp;N, 39.8262°&nbsp;E</span>), the shortest path over the globe, worked out on your&nbsp;phone.</dd>
+            </div>
+            <div>
+              <dt>What if my phone won't share its&nbsp;motion?</dt>
+              <dd>You get a fixed reading instead, such as "The Qibla is <span class="num">34°</span> left of the phone's top edge", with the amber line on the map showing the&nbsp;direction.</dd>
+            </div>
+            <div>
+              <dt>Do I need to install&nbsp;anything?</dt>
+              <dd>No. It runs in the browser on iPhone and Android. Add it to your Home Screen and it opens full screen, like any other app. There is no account to&nbsp;make.</dd>
+            </div>
+            <div>
+              <dt>Is my location&nbsp;stored?</dt>
+              <dd>No. Your location is used only on your phone to work out the line, and the app doesn't store it or send it anywhere. The only requests it makes are for map tiles, and there are no&nbsp;analytics.</dd>
+            </div>
+          </dl>
+        </section>
+
         <section class="l-get l-reveal" aria-labelledby="get-title">
-          <div class="l-qr-code l-qr-large"><!--qr--></div>
-          <h2 id="get-title">Open it on your&nbsp;phone.</h2>
-          <p class="l-lead">Point your camera at the code. It runs in the browser on iPhone and Android and adds to your Home Screen. No app store, no&nbsp;account.</p>
-          <p class="l-get-links"><span class="num">qiblaline.com</span><a href="/app">Or open it on this&nbsp;computer</a></p>
+          <div class="l-qr-code l-qr-large l-desk"><!--qr--></div>
+          <h2 id="get-title"><span class="l-desk">Open it on your&nbsp;phone.</span><span class="l-phone">Open it&nbsp;now.</span></h2>
+          <p class="l-lead l-desk">Point your camera at the code. It runs in the browser on iPhone and Android and adds to your Home Screen. No app store, no&nbsp;account.</p>
+          <p class="l-lead l-phone">It runs in the browser on iPhone and Android and adds to your Home Screen. No app store, no&nbsp;account.</p>
+          <a class="l-open l-phone" href="/">Open Qibla Line</a>
+          <p class="l-get-links l-desk"><span class="num">qiblaline.com</span><a href="/app">Or open it on this&nbsp;computer</a></p>
         </section>
       </main>
 

@@ -1,0 +1,47 @@
+# Qibla Line
+
+> Qibla Line (https://qiblaline.com) is a free web app for finding the Qibla, the direction Muslims face to pray, without trusting the phone's compass. It lines a map up with a wall of the room you're in, then guides your turn with the gyroscope until it says "Facing the Qibla". It runs in the browser on iPhone and Android and can be added to the Home Screen. No account, no analytics.
+
+## Why it avoids the compass
+
+A phone's compass is a magnetometer. Indoors, steel, speakers, wiring and appliances bend the magnetic field, so the reading can be wrong with nothing on screen to show it. Walls don't move. Once the map is lined up with a wall of the building, the direction is geometry, and the turn is measured by the gyroscope, which magnets don't affect.
+
+## How it works
+
+1. Place: use your current location, pick one of 187 cities (each listed with its Qibla bearing), or enter coordinates.
+2. Line up: lay the phone flat with its top edge against a wall. Turn the on-screen dial until the same wall on the map runs along the grid. The grid is fixed to the screen, so its lines stay parallel to the phone's edges while the map turns.
+3. Face: tap "It lines up", pick the phone up and hold it flat. The app follows the turn with the gyroscope ("Turn left 12°") until it shows "Facing the Qibla". It counts as facing within 2° and leaves that state beyond 4°, so it doesn't flicker.
+
+If motion access is refused or unavailable, the app shows a fixed reading instead, for example "The Qibla is 34° left of the phone's top edge", with an amber line on the map as the direction. An optional compass button makes the map follow the phone's heading, for outdoors or as a cross-check.
+
+## The calculation
+
+The direction is the initial great-circle bearing from the chosen location to the Kaaba at latitude 21.422487, longitude 39.826206. Distance uses the Haversine formula with an Earth radius of 6371.0088 km. From Dubai city centre the result is 258.2°, 1,631 km. Everything is calculated on the device.
+
+## Accuracy and limits
+
+- Alignment is only as accurate as OpenStreetMap's drawing of the building. In well-mapped areas that is usually within a degree or two.
+- The gyroscope drifts slowly. Over the time it takes to turn and pray this is well under a degree; "Line up again" resets it.
+- iPhone asks for motion access the first time "It lines up" is tapped.
+- Location and motion sensors need HTTPS, which qiblaline.com has.
+
+## Privacy
+
+Location is used only on the device to work out the line. It is not stored or sent to any backend; the only network requests are for map tiles (OpenStreetMap raster tiles, and building outlines from OpenFreeMap vector tiles). No analytics. The only thing kept in browser storage is when the install prompt was last dismissed.
+
+## On computers
+
+Computers get a landing page with a 48 second explainer film and a QR code to open the app on a phone. The same page is at https://qiblaline.com/about on any device. Anyone can still open the app on a computer at https://qiblaline.com/app.
+
+## Film transcript
+
+Phone compasses drift indoors. Speakers, wiring and steel pull the needle off course. It can look certain and still point the wrong way. 1, Place: use your location, or pick a city. The map finds where you are. 2, Line up: lay the phone flat, top edge against a wall. Turn the dial until that wall lines up with the grid. Tap "It lines up". Now the map matches your room. 3, Face: pick it up, hold it flat and turn on the spot. Turn left 38°. Uses the gyroscope, not the compass. Facing the Qibla. Makkah, 258.2°, 1,629 km. Qibla Line, qiblaline.com. Add it to your Home Screen.
+
+## Links
+
+- [Qibla Line](https://qiblaline.com/): the app on phones, the landing page on computers
+- [About Qibla Line](https://qiblaline.com/about): the landing page, readable on any device
+- [Open the app on a computer](https://qiblaline.com/app)
+- [Explainer film (MP4, 48 s)](https://qiblaline.com/video/qibla-line.mp4)
+- [App source code](https://github.com/hashmil/qibla-line): Vite, React, TypeScript, MapLibre GL JS
+- [Film source](https://github.com/hashmil/qibla-line-explainer): HyperFrames and Three.js

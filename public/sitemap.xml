@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+  <url>
+    <loc>https://qiblaline.com/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <video:video>
+      <video:thumbnail_loc>https://qiblaline.com/video/poster.jpg</video:thumbnail_loc>
+      <video:title>How Qibla Line works</video:title>
+      <video:description>A 48 second film: why phone compasses drift indoors, then the three steps in the app (Place, Line up, Face) and the line to the Kaaba.</video:description>
+      <video:content_loc>https://qiblaline.com/video/qibla-line.mp4</video:content_loc>
+      <video:duration>48</video:duration>
+      <video:publication_date>2026-09-25</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://qiblaline.com/about</loc>
+    <lastmod>2026-09-25</lastmod>
+  </url>
+</urlset>

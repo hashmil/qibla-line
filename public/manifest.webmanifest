@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Qibla Line",
   "short_name": "Qibla Line",
-  "description": "Find the Qibla by turning a map to match your room.",
+  "description": "A Qibla finder that doesn't trust your phone's compass. Line a map up with a wall of your room, then turn until it says you're facing the Qibla.",
   "lang": "en-GB",
   "start_url": "/app",
   "scope": "/",
@@ -11,10 +11,63 @@
   "background_color": "#07090c",
   "theme_color": "#07090c",
   "icons": [
-    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": [
+    "lifestyle",
+    "utilities",
+    "navigation"
+  ],
+  "screenshots": [
+    {
+      "src": "/landing/place.webp",
+      "sizes": "720x1558",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Place: use your location or pick a city"
+    },
+    {
+      "src": "/landing/line-up.webp",
+      "sizes": "720x1558",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Line up: turn the dial until a wall on the map runs along the grid"
+    },
+    {
+      "src": "/landing/face.webp",
+      "sizes": "720x1558",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Face: turn until it says Facing the Qibla"
+    }
   ]
 }

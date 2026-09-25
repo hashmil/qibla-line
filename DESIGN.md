@@ -68,3 +68,5 @@ Screens are the real 1170x2532 captures from the explainer project, shown bare w
 QR code: dark modules on ink, on a 12px-radius plate, generated at build time.
 
 Motion: sections rise 16px and fade in once as they enter the viewport; off with reduced motion.
+
+Phones see this page only at /about. Below 900px it becomes one column: headline 39, section headlines 31, body 16, 16px side margin, screens 260px wide with the display radius scaled to match (29px). The QR codes give way to an amber "Open Qibla Line" button, the page's one primary action, as in the app.
