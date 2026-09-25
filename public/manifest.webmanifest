@@ -4,7 +4,7 @@
   "short_name": "Qibla Line",
   "description": "Find the Qibla by turning a map to match your room.",
   "lang": "en-GB",
-  "start_url": "/",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

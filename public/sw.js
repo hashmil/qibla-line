@@ -1,4 +1,4 @@
-const SHELL_CACHE = "qibla-line-shell-v4";
+const SHELL_CACHE = "qibla-line-shell-v5";
 const SHELL_ASSETS = ["/", "/manifest.webmanifest", "/icons/icon.svg", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 function getShellAssetUrls(html) {
@@ -14,7 +14,13 @@ async function cacheShell() {
   const html = await response.clone().text();
   await cache.put("/", response);
 
-  const urls = [...new Set([...SHELL_ASSETS.filter((url) => url !== "/"), ...getShellAssetUrls(html)])];
+  // The app is loaded with a dynamic import, so its chunks are not named in the HTML.
+  // The build writes them all to shell-assets.json.
+  const built = await fetch("/shell-assets.json", { cache: "no-cache" })
+    .then((list) => (list.ok ? list.json() : []))
+    .catch(() => []);
+
+  const urls = [...new Set([...SHELL_ASSETS.filter((url) => url !== "/"), ...getShellAssetUrls(html), ...built])];
   await cache.addAll(urls);
 }
 

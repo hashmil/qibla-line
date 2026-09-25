@@ -32,7 +32,7 @@ export function MapButtons({ onZoomIn, onZoomOut, onRecentre, compassOn, onToggl
         <Compass aria-hidden="true" size={20} />
       </button>
       <a className="osm-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
-        © OpenStreetMap contributors
+        © OpenStreetMap contributors · OpenFreeMap
       </a>
     </div>
   );

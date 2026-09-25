@@ -3,22 +3,148 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <script>
+      // Runs before first paint. Computers get the landing page, phones and tablets the app.
+      // /app, ?app and an installed app always open the app.
+      (function () {
+        var root = document.documentElement;
+        try {
+          var path = location.pathname.replace(/\/+$/, "");
+          var forced = path === "/app" || new URLSearchParams(location.search).has("app");
+          var installed =
+            navigator.standalone === true ||
+            matchMedia("(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay)").matches;
+          // iPadOS reports itself as a Mac, so use touch support to tell them apart
+          var ipad = /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+          var computer = matchMedia("(hover: hover) and (pointer: fine) and (min-width: 900px)").matches;
+          root.dataset.mode = forced || installed || ipad || !computer ? "app" : "landing";
+        } catch (error) {
+          root.dataset.mode = "app";
+        }
+      })();
+    </script>
     <meta name="theme-color" content="#07090c" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Qibla Line" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Qibla Line: find the Qibla from the walls of your room</title>
     <meta
       name="description"
-      content="Find the Qibla by turning a map to match your room."
+      content="Phone compasses drift indoors. Qibla Line finds the Qibla by lining a map up with a wall of your room, then follows your turn with the gyroscope. Free, in the browser, on iPhone and Android."
     />
+    <link rel="canonical" href="https://qiblaline.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Qibla Line" />
+    <meta property="og:url" content="https://qiblaline.com/" />
+    <meta property="og:title" content="Qibla Line: find the Qibla from the walls of your room" />
+    <meta property="og:description" content="Phone compasses drift indoors. Line a map up with a wall of your room instead, then turn until it says you're facing the Qibla." />
+    <meta property="og:image" content="https://qiblaline.com/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Qibla Line app showing Facing the Qibla, with an amber line running across a drawn room" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <title>Qibla Line</title>
   </head>
   <body>
+    <div class="landing">
+      <header class="l-bar">
+        <a class="l-brand" href="/"><img src="/icons/icon.svg" alt="" width="24" height="24" />Qibla Line</a>
+        <nav class="l-nav" aria-label="Page">
+          <a href="#how">How it works</a>
+          <a href="#why">Why not the compass</a>
+          <a href="/app">Open the app here anyway</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="l-hero" aria-labelledby="l-title">
+          <h1 id="l-title">Find the Qibla from the walls of your&nbsp;room.</h1>
+          <p class="l-lead">Line a map up with a wall of your room, then turn until it says you're facing the&nbsp;Qibla.</p>
+          <div class="l-film">
+            <video
+              id="l-video"
+              width="1920"
+              height="1080"
+              muted
+              loop
+              playsinline
+              preload="none"
+              data-src="/video/qibla-line.mp4"
+              data-poster="/video/poster.jpg"
+              aria-label="How Qibla Line works, a 48 second film with captions"
+            ></video>
+            <div class="l-under">
+              <div class="l-controls" id="l-controls" hidden>
+                <button class="l-control" id="l-replay" type="button">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+                  <span>Replay</span>
+                </button>
+                <button class="l-control" id="l-sound" type="button" data-muted="true">
+                  <svg class="l-icon-on" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z" /><path d="M16 9a5 5 0 0 1 0 6" /><path d="M19.4 18.4a9 9 0 0 0 0-12.8" /></svg>
+                  <svg class="l-icon-off" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z" /><path d="M22 9l-6 6" /><path d="M16 9l6 6" /></svg>
+                  <span>Play with sound</span>
+                </button>
+              </div>
+              <div class="l-scan">
+                <div class="l-qr-code l-qr-small"><!--qr--></div>
+                <p><strong>Scan to open it on your&nbsp;phone</strong><span class="num">qiblaline.com</span></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="l-how l-reveal" id="how" aria-labelledby="how-title">
+          <h2 id="how-title">Place. Line&nbsp;up. Face.</h2>
+          <p class="l-lead">Three steps, the same way every time, at home, in a hotel room or at a friend's&nbsp;house.</p>
+          <ol class="l-steps">
+            <li>
+              <img src="/landing/place.webp" width="720" height="1558" loading="lazy" alt="The Place screen: a Use my location button above a list of cities, each with its Qibla bearing" />
+              <h3><span class="num">1</span>Place</h3>
+              <p>Use your location or pick from 187 cities. The map draws the line to the Kaaba from where you&nbsp;are.</p>
+            </li>
+            <li>
+              <img src="/landing/line-up.webp" width="720" height="1558" loading="lazy" alt="The Line up screen: the map turned to 297 degrees on the dial, with a grid over the buildings" />
+              <h3><span class="num">2</span>Line up</h3>
+              <p>Lay the phone flat, top edge against a wall. Turn the dial until that wall on the map runs along the&nbsp;grid.</p>
+            </li>
+            <li>
+              <img src="/landing/face.webp" width="720" height="1558" loading="lazy" alt="The Face screen: the amber line points straight up and the card reads Facing the Qibla" />
+              <h3><span class="num">3</span>Face</h3>
+              <p>Pick it up, hold it flat and turn on the spot until it says <span class="l-facing">Facing the&nbsp;Qibla</span>.</p>
+            </li>
+          </ol>
+        </section>
+
+        <section class="l-why l-reveal" id="why" aria-labelledby="why-title">
+          <div class="l-why-text">
+            <h2 id="why-title">Phone compasses drift&nbsp;indoors.</h2>
+            <p>A compass reads the Earth's magnetic field, and inside a building that field is bent by steel, speakers and wiring. The needle can be off with nothing on screen to show&nbsp;it.</p>
+            <p>Walls stay put. Once the map matches one, the direction is geometry, and your turn is measured by the gyroscope, which magnets don't&nbsp;affect.</p>
+          </div>
+          <figure class="l-bearing">
+            <span class="num">258.2°</span>
+            <figcaption>The Qibla from central Dubai: the great-circle bearing to the Kaaba, <span class="num">1,631&nbsp;km</span>&nbsp;away.</figcaption>
+          </figure>
+        </section>
+
+        <section class="l-get l-reveal" aria-labelledby="get-title">
+          <div class="l-qr-code l-qr-large"><!--qr--></div>
+          <h2 id="get-title">Open it on your&nbsp;phone.</h2>
+          <p class="l-lead">Point your camera at the code. It runs in the browser on iPhone and Android and adds to your Home Screen. No app store, no&nbsp;account.</p>
+          <p class="l-get-links"><span class="num">qiblaline.com</span><a href="/app">Or open it on this&nbsp;computer</a></p>
+        </section>
+      </main>
+
+      <footer class="l-foot">
+        <p>Free, with no analytics. Your location is used only on your phone to work out the line, and the app doesn't store&nbsp;it.</p>
+        <p>Map data © OpenStreetMap contributors, building outlines by&nbsp;OpenFreeMap</p>
+      </footer>
+    </div>
+
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

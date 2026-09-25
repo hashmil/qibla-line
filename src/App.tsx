@@ -380,7 +380,7 @@ export default function App() {
       title: "Line the map up with a wall",
       help:
         compassHelp(compassStatus, compassReading) ??
-        "Lay the phone along a wall, then turn the dial until that wall runs along the grid."
+        "Lay the phone flat, top edge against a wall. Turn the dial until that wall runs along the grid."
     },
     face:
       faceMode === "static"

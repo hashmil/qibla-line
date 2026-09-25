@@ -1,0 +1,475 @@
+/* Desktop landing page. Tokens are the app's (see DESIGN.md, "Desktop landing").
+   This file loads in both modes, so every rule is scoped to the landing page. */
+
+html[data-mode="app"] .landing,
+html[data-mode="landing"] #root {
+  display: none;
+}
+
+html[data-mode="landing"] {
+  color-scheme: dark;
+  --night: #07090c;
+  --panel: #12161c;
+  --rule: #2a3038;
+  --text: #d8d2c4;
+  --dim: #7c7f84;
+  --amber: #ffb23e;
+  --radius: 12px;
+  --sans: "Chivo", system-ui, -apple-system, sans-serif;
+  --mono: "Chivo Mono", ui-monospace, "SF Mono", monospace;
+  background: var(--night);
+}
+
+html[data-mode="landing"] body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--night);
+  color: var(--text);
+  font: 400 16px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+.landing *,
+.landing *::before,
+.landing *::after {
+  box-sizing: border-box;
+}
+
+.landing a {
+  color: inherit;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--dim);
+}
+
+.landing a:hover {
+  text-decoration-color: currentColor;
+}
+
+.landing :focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* Avoid a lone word on the last line; index.html also joins each block's last two words */
+.landing p,
+.landing figcaption,
+.landing h2 {
+  text-wrap: pretty;
+}
+
+.landing .num {
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
+.landing h1,
+.landing h2,
+.landing h3,
+.landing p,
+.landing ol,
+.landing figure {
+  margin: 0;
+}
+
+/* Bar: solid, like the app's top bar */
+.l-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 32px;
+  background: var(--night);
+  border-bottom: 1px solid var(--rule);
+}
+
+.l-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.l-nav {
+  display: flex;
+  gap: 32px;
+  font-size: 14px;
+}
+
+.l-nav a {
+  color: var(--dim);
+  text-decoration: none;
+}
+
+.l-nav a:hover {
+  color: var(--text);
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 128px;
+  max-width: 1264px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.landing h2 {
+  font-size: 49px;
+  line-height: 1.05;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.l-lead {
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--dim);
+}
+
+/* Hero: headline, the way to get it, then the film */
+.l-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 72px;
+  text-align: center;
+}
+
+.l-hero h1 {
+  max-width: 18ch;
+  font-size: 76px;
+  line-height: 1.05;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.l-hero .l-lead {
+  max-width: 34ch;
+  margin-top: 24px;
+}
+
+.l-scan {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+  text-align: right;
+}
+
+.l-scan p {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.l-scan strong {
+  font-size: 16px;
+}
+
+.l-scan .num {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+/* Dark modules on the ink colour: phone cameras read dark-on-light codes most reliably */
+.l-qr-code {
+  flex: none;
+  background: var(--text);
+  border-radius: var(--radius);
+}
+
+.l-qr-code svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.l-qr-small {
+  width: 88px;
+  padding: 8px;
+}
+
+.l-qr-large {
+  width: 200px;
+  padding: 16px;
+}
+
+.l-film {
+  position: relative;
+  width: 100%;
+  /* The film and its buttons fit on screen at first load: 500px is the bar, the text above and the buttons */
+  max-width: max(640px, calc((100svh - 500px) * 16 / 9));
+  margin-top: 48px;
+}
+
+.l-film video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.l-under {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.l-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.l-controls[hidden] {
+  display: none;
+}
+
+.l-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  font: 700 14px/1 var(--sans);
+  cursor: pointer;
+}
+
+.l-control:hover {
+  border-color: var(--dim);
+}
+
+.l-control[data-muted="true"] .l-icon-off,
+.l-control[data-muted="false"] .l-icon-on {
+  display: none;
+}
+
+/* How it works: the three real screens, in the order they happen */
+.l-how {
+  text-align: center;
+}
+
+.l-how,
+.l-why {
+  scroll-margin-top: 96px;
+}
+
+.l-how .l-lead {
+  max-width: 40ch;
+  margin: 16px auto 0;
+}
+
+/* .landing prefix: the list reset above would otherwise win on specificity */
+.landing .l-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 48px;
+  margin-top: 64px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.l-steps li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The iPhone display's own corner radius at this width; no drawn device */
+.l-steps img {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: 36px;
+}
+
+.l-steps h3,
+.l-steps p {
+  width: 100%;
+  max-width: 320px;
+}
+
+.l-steps h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 32px;
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.l-steps h3 .num {
+  font-size: 16px;
+  color: var(--dim);
+}
+
+.l-steps p {
+  margin-top: 8px;
+  color: var(--dim);
+}
+
+.l-facing {
+  color: var(--amber);
+  font-weight: 700;
+}
+
+/* Why not the compass: the argument, and the one number it produces */
+.l-why {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 64px;
+  align-items: center;
+  padding: 96px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.l-why-text {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.l-why-text h2 {
+  margin-bottom: 8px;
+}
+
+.l-why-text p {
+  max-width: 52ch;
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--dim);
+}
+
+.l-bearing {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Chivo, not the mono: at display size the mono's full-width point and degree sign open gaps */
+.l-bearing > .num {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 119px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.l-bearing figcaption {
+  max-width: 40ch;
+  font-size: 16px;
+  color: var(--dim);
+}
+
+/* Get it: the code again, large */
+.l-get {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.l-get h2 {
+  margin-top: 16px;
+}
+
+.l-get .l-lead {
+  max-width: 40ch;
+}
+
+.l-get-links {
+  display: flex;
+  gap: 24px;
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.l-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1264px;
+  margin: 128px auto 0;
+  padding: 24px 32px 48px;
+  border-top: 1px solid var(--rule);
+  font-size: 12px;
+  color: var(--dim);
+}
+
+/* Sections rise into place once. Only when script is running and motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-ready .l-reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 700ms ease-out,
+      transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .reveal-ready .l-reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Laptop-height windows: a smaller headline leaves the film more room */
+@media (max-height: 960px) {
+  .l-hero {
+    padding-top: 48px;
+  }
+
+  .l-hero h1 {
+    font-size: 61px;
+  }
+
+  .l-film {
+    max-width: max(640px, calc((100svh - 430px) * 16 / 9));
+  }
+}
+
+/* The landing page is chosen only at 900px and wider, but keep a narrow window readable */
+@media (max-width: 1080px) {
+  .l-hero h1 {
+    font-size: 61px;
+  }
+
+  .landing h2 {
+    font-size: 39px;
+  }
+
+  .l-nav a[href="#why"] {
+    display: none;
+  }
+
+  .l-steps {
+    gap: 24px;
+  }
+
+  .l-why {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .l-bearing > .num {
+    font-size: 76px;
+  }
+}

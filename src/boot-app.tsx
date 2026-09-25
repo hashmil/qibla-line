@@ -1,11 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "maplibre-gl/dist/maplibre-gl.css";
-import "@fontsource/chivo/400.css";
-import "@fontsource/chivo/700.css";
-import "@fontsource/chivo-mono/500.css";
 import "./styles/global.css";
 import App from "./App";
+
+// index.html carries the landing page title; the app window keeps the short name
+document.title = "Qibla Line";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -19,9 +19,10 @@ for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
   document.addEventListener(type, (event) => event.preventDefault(), { passive: false });
 }
 
+// This module is loaded with a dynamic import, which can land after the load event
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
-  });
+  const register = () => navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register, { once: true });
 }
 
