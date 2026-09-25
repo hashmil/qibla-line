@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { DEFAULT_CITY } from "./data/cities";
 import { calculateQibla, normalise180 } from "./lib/qibla";
 import { getCompassReading, requestCompassPermission } from "./lib/compass";
+import { usePwaInstall } from "./lib/install";
 import type { AppLocation, CompassReading, CompassStatus } from "./types";
-import { ControlSheet } from "./components/ControlSheet";
-import { CompassOverlay } from "./components/CompassOverlay";
+import { Dial } from "./components/Dial";
+import { FaceCard } from "./components/FaceCard";
+import { InstallSheet } from "./components/InstallSheet";
+import { MapButtons } from "./components/MapButtons";
 import { MapView, type MapViewHandle } from "./components/MapView";
-import { PermissionPanel } from "./components/PermissionPanel";
-import { StatusPill } from "./components/StatusPill";
+import { PlacePanel } from "./components/PlacePanel";
+import { TopBar, type Step } from "./components/TopBar";
 
 const DEFAULT_LOCATION: AppLocation = {
-  label: `${DEFAULT_CITY.city}, ${DEFAULT_CITY.country}`,
+  label: DEFAULT_CITY.city,
   lat: DEFAULT_CITY.lat,
   lon: DEFAULT_CITY.lon,
   source: "fallback"
@@ -41,45 +44,93 @@ function shouldReplaceCompassReading(current: CompassReading | null, next: Compa
 
 function geolocationErrorMessage(error: GeolocationPositionError | Error | null): string {
   if (!("geolocation" in navigator)) {
-    return "Location is not supported here. Your current selection is unchanged.";
+    return "Location isn't supported in this browser. Pick a city instead.";
   }
 
   if (!window.isSecureContext && window.location.hostname !== "localhost") {
-    return "Location needs HTTPS. Your current selection is unchanged.";
+    return "Location needs a secure (https) page. Pick a city instead.";
   }
 
   if (!error || !("code" in error)) {
-    return "Location could not be found. Your current selection is unchanged.";
+    return "Your location couldn't be found. Pick a city instead.";
   }
 
   if (error.code === error.PERMISSION_DENIED) {
-    return "Location permission was denied. Your current selection is unchanged.";
+    return "Location permission was denied. Pick a city instead, or allow location in Settings.";
   }
 
   if (error.code === error.TIMEOUT) {
-    return "Location timed out. Your current selection is unchanged.";
+    return "Finding your location took too long. Try again, or pick a city.";
   }
 
-  return "Location is unavailable. Your current selection is unchanged.";
+  return "Your location is unavailable. Pick a city instead.";
+}
+
+function compassHelp(status: CompassStatus, reading: CompassReading | null): string | null {
+  switch (status) {
+    case "requesting":
+      return "Asking for compass access.";
+    case "active":
+      return reading
+        ? "Following your phone's compass. It can drift indoors, so check the map still matches."
+        : "Waiting for the compass. Move the phone gently.";
+    case "denied":
+      return "Compass access was denied. Use the dial instead.";
+    case "unsupported":
+      return "This device has no compass. Use the dial instead.";
+    case "error":
+      return "The compass isn't responding. Use the dial instead.";
+    default:
+      return null;
+  }
+}
+
+function useHeight(ref: RefObject<HTMLElement | null>, key: unknown): number {
+  const [height, setHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      setHeight(0);
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(() => setHeight(element.getBoundingClientRect().height));
+    observer.observe(element);
+    setHeight(element.getBoundingClientRect().height);
+    return () => observer.disconnect();
+  }, [ref, key]);
+
+  return height;
 }
 
 export default function App() {
   const mapRef = useRef<MapViewHandle | null>(null);
+  const topBarRef = useRef<HTMLElement | null>(null);
+  const bottomRef = useRef<HTMLElement | null>(null);
   const locationRequestIdRef = useRef(0);
   const compassRequestIdRef = useRef(0);
   const pendingCompassReadingRef = useRef<CompassReading | null>(null);
   const compassFrameRef = useRef<number | null>(null);
+  const [step, setStep] = useState<Step>("place");
   const [location, setLocation] = useState<AppLocation>(DEFAULT_LOCATION);
+  const [hasPlace, setHasPlace] = useState(false);
   const [mapBearing, setMapBearing] = useState(0);
-  const [introVisible, setIntroVisible] = useState(true);
   const [isLocating, setIsLocating] = useState(false);
   const [message, setMessage] = useState("");
   const [compassStatus, setCompassStatus] = useState<CompassStatus>("idle");
   const [compassReading, setCompassReading] = useState<CompassReading | null>(null);
 
+  const install = usePwaInstall();
+  const [installOpen, setInstallOpen] = useState(false);
+
+  const topHeight = useHeight(topBarRef, step);
+  const bottomHeight = useHeight(bottomRef, step);
+
   const qibla = useMemo(() => calculateQibla(location), [location]);
   const relativeBearing = normalise180(qibla.bearing - mapBearing);
-  const compassActive = compassStatus === "active" || compassStatus === "requesting";
+  const compassOn = compassStatus === "active" || compassStatus === "requesting";
+  const compassFollowing = compassStatus === "active" && compassReading !== null;
 
   useEffect(() => {
     if (compassStatus !== "active") return undefined;
@@ -123,9 +174,10 @@ export default function App() {
   function selectLocation(nextLocation: AppLocation) {
     locationRequestIdRef.current += 1;
     setLocation(nextLocation);
-    setIntroVisible(false);
+    setHasPlace(true);
     setIsLocating(false);
     setMessage("");
+    setStep("match");
   }
 
   function useBrowserLocation() {
@@ -133,7 +185,6 @@ export default function App() {
     locationRequestIdRef.current = requestId;
 
     if (!("geolocation" in navigator) || (!window.isSecureContext && window.location.hostname !== "localhost")) {
-      setIntroVisible(false);
       setIsLocating(false);
       setMessage(geolocationErrorMessage(null));
       return;
@@ -146,25 +197,17 @@ export default function App() {
       (position) => {
         if (locationRequestIdRef.current !== requestId) return;
 
-        setLocation({
+        selectLocation({
           label: "My location",
           lat: position.coords.latitude,
           lon: position.coords.longitude,
           accuracy: position.coords.accuracy,
           source: "geolocation"
         });
-        setIntroVisible(false);
-        setIsLocating(false);
-        setMessage(
-          position.coords.accuracy
-            ? `Location found within about ${Math.round(position.coords.accuracy)} m.`
-            : "Location found."
-        );
       },
       (error) => {
         if (locationRequestIdRef.current !== requestId) return;
 
-        setIntroVisible(false);
         setIsLocating(false);
         setMessage(geolocationErrorMessage(error));
       },
@@ -177,10 +220,8 @@ export default function App() {
   }
 
   async function toggleCompass() {
-    if (compassStatus === "active" || compassStatus === "requesting") {
-      compassRequestIdRef.current += 1;
-      setCompassStatus("idle");
-      setCompassReading(null);
+    if (compassOn) {
+      stopCompassFollow();
       return;
     }
 
@@ -205,63 +246,97 @@ export default function App() {
     }
   }
 
+  function turnMap(bearing: number) {
+    stopCompassFollow();
+    mapRef.current?.setBearing(bearing);
+  }
+
+  const changePlace = () => {
+    stopCompassFollow();
+    setStep("place");
+  };
+
+  const copy: Record<Step, { title: string; help: string }> = {
+    place: { title: "Where are you praying?", help: "Your location stays in this browser. It is only used to work out the Qibla." },
+    match: {
+      title: "Match the map to your room",
+      help: compassHelp(compassStatus, compassReading) ?? "Turn the dial until a road or wall on the map lines up with one you can see."
+    },
+    face: {
+      title: "Face along the amber line",
+      help: compassHelp(compassStatus, compassReading) ?? "Keep the phone as it is. The amber line points to the Kaaba."
+    }
+  };
+
   return (
-    <main className="app-shell">
+    <main className="app-shell" style={{ ["--top-h" as string]: `${topHeight}px`, ["--bottom-h" as string]: `${bottomHeight}px` }}>
       <MapView
         ref={mapRef}
         location={location}
-        followHeading={compassStatus === "active" && compassReading ? compassReading.heading : null}
+        followHeading={compassFollowing ? compassReading.heading : null}
+        rotationLocked={step !== "match"}
+        padding={{ top: topHeight, bottom: bottomHeight }}
         onBearingChange={setMapBearing}
       />
-      <StatusPill
-        bearing={qibla.bearing}
-        distanceKm={qibla.distanceKm}
-        mapBearing={mapBearing}
-        relativeBearing={relativeBearing}
-        locationLabel={location.label}
-      />
-      <CompassOverlay
-        status={compassStatus}
-        reading={compassReading}
-        qiblaBearing={qibla.bearing}
-        mapBearing={mapBearing}
-        relativeBearing={relativeBearing}
-        onToggle={toggleCompass}
+
+      <TopBar
+        ref={topBarRef}
+        step={step}
+        title={copy[step].title}
+        help={copy[step].help}
+        placeLabel={hasPlace && step !== "place" ? location.label : undefined}
+        onChangePlace={changePlace}
+        onInstall={step === "place" && !install.installed ? () => setInstallOpen(true) : undefined}
       />
 
-      {introVisible ? (
-        <PermissionPanel
+      {step === "place" ? (
+        <PlacePanel
           onUseLocation={useBrowserLocation}
           onSelectCity={selectLocation}
-          statusMessage={message}
+          message={message}
           isLocating={isLocating}
+        />
+      ) : (
+        <MapButtons
+          onZoomIn={() => mapRef.current?.zoomIn()}
+          onZoomOut={() => mapRef.current?.zoomOut()}
+          onRecentre={() => mapRef.current?.recentre()}
+          compassOn={compassOn}
+          onToggleCompass={toggleCompass}
+        />
+      )}
+
+      {step === "match" ? (
+        <section ref={bottomRef} className="match-controls" aria-label="Turn the map">
+          <Dial bearing={mapBearing} qiblaBearing={qibla.bearing} onTurn={turnMap} />
+          <button className="primary-action" type="button" onClick={() => setStep("face")}>
+            It matches
+          </button>
+        </section>
+      ) : null}
+
+      {step === "face" ? (
+        <FaceCard
+          ref={bottomRef}
+          relativeBearing={relativeBearing}
+          qiblaBearing={qibla.bearing}
+          distanceKm={qibla.distanceKm}
+          placeLabel={location.label}
+          accuracy={location.accuracy}
+          compassFollowing={compassFollowing}
+          onRematch={() => setStep("match")}
+          onChangePlace={changePlace}
         />
       ) : null}
 
-      {!introVisible ? (
-        <ControlSheet
-          onRotate={(degrees) => {
-            stopCompassFollow();
-            mapRef.current?.rotateBy(degrees);
+      {installOpen ? (
+        <InstallSheet
+          canPrompt={install.canPrompt}
+          onPromptInstall={async () => {
+            await install.promptInstall();
+            setInstallOpen(false);
           }}
-          onNorthUp={() => {
-            stopCompassFollow();
-            mapRef.current?.setNorthUp();
-          }}
-          onQiblaUp={() => {
-            stopCompassFollow();
-            mapRef.current?.setQiblaUp(qibla.bearing);
-          }}
-          onRecentre={() => mapRef.current?.recentre()}
-          onSelectLocation={selectLocation}
-          onUseLocation={useBrowserLocation}
-          isLocating={isLocating}
-          message={message}
-          showUseLocationShortcut={location.source !== "geolocation" && !compassActive}
-          compassStatus={compassStatus}
-          compassReading={compassReading}
-          onToggleCompass={toggleCompass}
-          compactPreferred={compassActive}
+          onClose={() => setInstallOpen(false)}
         />
       ) : null}
     </main>

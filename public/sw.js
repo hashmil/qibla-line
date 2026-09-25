@@ -1,4 +1,4 @@
-const SHELL_CACHE = "qibla-line-shell-v3";
+const SHELL_CACHE = "qibla-line-shell-v4";
 const SHELL_ASSETS = ["/", "/manifest.webmanifest", "/icons/icon.svg", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 function getShellAssetUrls(html) {
@@ -54,7 +54,15 @@ async function networkFirst(request) {
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
-  return fetch(request);
+
+  // Hashed build assets (including font files pulled in by CSS) are immutable,
+  // so keep a copy of each one the first time it is used.
+  const response = await fetch(request);
+  if (response.ok) {
+    const cache = await caches.open(SHELL_CACHE);
+    await cache.put(request, response.clone());
+  }
+  return response;
 }
 
 self.addEventListener("fetch", (event) => {

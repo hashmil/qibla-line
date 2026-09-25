@@ -6,19 +6,24 @@ import { createQiblaLineCollection } from "../lib/geo";
 import { createRasterStyle } from "../lib/mapStyle";
 
 export type MapViewHandle = {
-  rotateBy: (degrees: number) => void;
-  setNorthUp: () => void;
-  setQiblaUp: (bearing: number) => void;
+  setBearing: (bearing: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
   recentre: () => void;
 };
+
+type MapPadding = { top: number; bottom: number };
 
 type MapViewProps = {
   location: AppLocation;
   followHeading?: number | null;
+  rotationLocked: boolean;
+  padding: MapPadding;
   onBearingChange: (bearing: number) => void;
 };
 
 const LINE_SOURCE_ID = "qibla-line-source";
+const AMBER = "#ffb23e";
 
 function createMarkerElement(className: string, label: string): HTMLElement {
   const element = document.createElement("div");
@@ -28,8 +33,12 @@ function createMarkerElement(className: string, label: string): HTMLElement {
   return element;
 }
 
+function locationZoom(location: AppLocation): number {
+  return location.source === "geolocation" ? 17 : 14;
+}
+
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
-  { location, followHeading = null, onBearingChange },
+  { location, followHeading = null, rotationLocked, padding, onBearingChange },
   ref
 ) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -42,26 +51,24 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   useImperativeHandle(
     ref,
     () => ({
-      rotateBy(degrees: number) {
-        const map = mapRef.current;
-        if (!map) return;
-        map.easeTo({ bearing: map.getBearing() + degrees, duration: 180 });
+      setBearing(bearing: number) {
+        mapRef.current?.setBearing(bearing);
       },
-      setNorthUp() {
-        mapRef.current?.easeTo({ bearing: 0, duration: 260 });
+      zoomIn() {
+        mapRef.current?.zoomIn({ duration: 220 });
       },
-      setQiblaUp(bearing: number) {
-        mapRef.current?.easeTo({ bearing, duration: 320 });
+      zoomOut() {
+        mapRef.current?.zoomOut({ duration: 220 });
       },
       recentre() {
         mapRef.current?.easeTo({
           center: [location.lon, location.lat],
-          zoom: location.source === "geolocation" ? 17 : 13,
+          zoom: locationZoom(location),
           duration: 360
         });
       }
     }),
-    [location, onBearingChange]
+    [location]
   );
 
   useEffect(() => {
@@ -74,22 +81,20 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         container: mapContainerRef.current,
         style: createRasterStyle(),
         center: [location.lon, location.lat],
-        zoom: location.source === "geolocation" ? 16 : 12,
+        zoom: locationZoom(location),
         bearing: 0,
         pitch: 0,
         minZoom: 2,
         maxZoom: 19,
-        attributionControl: false
+        attributionControl: false,
+        pitchWithRotate: false
       });
     } catch {
       setMapError("Map rendering is unavailable in this browser.");
       return;
     }
 
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), "top-left");
-    map.dragRotate.enable();
-    map.touchZoomRotate.enable();
-    map.touchZoomRotate.enableRotation();
+    map.touchPitch.disable();
 
     const updateBearing = () => onBearingChange(map.getBearing());
     map.on("rotate", updateBearing);
@@ -104,28 +109,15 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       });
 
       map.addLayer({
-        id: "qibla-line-shadow",
-        type: "line",
-        source: LINE_SOURCE_ID,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: {
-          "line-color": "#8a4314",
-          "line-opacity": 0.24,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 4, 6, 12, 12, 18, 18],
-          "line-blur": 5
-        }
-      });
-
-      map.addLayer({
         id: "qibla-line-glow",
         type: "line",
         source: LINE_SOURCE_ID,
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": "#ffb000",
-          "line-opacity": 0.32,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 4, 4, 12, 8, 18, 12],
-          "line-blur": 2.8
+          "line-color": AMBER,
+          "line-opacity": 0.25,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 4, 8, 12, 14, 18, 20],
+          "line-blur": 6
         }
       });
 
@@ -135,14 +127,13 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         source: LINE_SOURCE_ID,
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": "#ffb000",
-          "line-width": ["interpolate", ["linear"], ["zoom"], 4, 2.4, 12, 4.6, 18, 7],
-          "line-opacity": 0.96
+          "line-color": AMBER,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 4, 2.4, 12, 3.6, 18, 5]
         }
       });
 
       userMarkerRef.current = new maplibregl.Marker({
-        element: createMarkerElement("map-marker user-marker", "Current or selected location"),
+        element: createMarkerElement("map-marker user-marker", "Your selected location"),
         anchor: "center"
       })
         .setLngLat([location.lon, location.lat])
@@ -175,7 +166,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       kaabaMarkerRef.current?.setLngLat([KAABA.lon, KAABA.lat]);
       map.easeTo({
         center: [location.lon, location.lat],
-        zoom: location.source === "geolocation" ? 17 : 13,
+        zoom: locationZoom(location),
         duration: 520
       });
     };
@@ -189,23 +180,43 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map) return;
+
+    if (rotationLocked) {
+      map.dragRotate.disable();
+      map.touchZoomRotate.disableRotation();
+      map.keyboard.disableRotation();
+    } else {
+      map.dragRotate.enable();
+      map.touchZoomRotate.enableRotation();
+      map.keyboard.enableRotation();
+    }
+  }, [rotationLocked]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    map.easeTo({ padding: { top: padding.top, bottom: padding.bottom, left: 0, right: 0 }, duration: 240 });
+  }, [padding.top, padding.bottom]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map || followHeading === null) return;
 
     map.setBearing(followHeading);
-    map.triggerRepaint();
     onBearingChange(map.getBearing());
   }, [followHeading, onBearingChange]);
 
   return (
-    <div className="map-shell" aria-label="Map showing Qibla line">
+    <div className="map-shell" aria-label="Map showing the Qibla line">
       <div ref={mapContainerRef} className="map-container" />
       {mapError ? (
         <div className="map-fallback" role="status">
           <strong>Map rendering is unavailable</strong>
-          <span>Qibla bearing and city selection still work. Try Safari or another browser with WebGL.</span>
+          <span>The Qibla bearing still works. Try Safari or another browser with WebGL.</span>
         </div>
       ) : null}
-      <div className="bearing-halo" aria-hidden="true" />
     </div>
   );
 });
