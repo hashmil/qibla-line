@@ -443,6 +443,14 @@ main {
   color: var(--dim);
 }
 
+.l-credits {
+  text-align: right;
+}
+
+.l-credits a {
+  color: var(--text);
+}
+
 /* Sections rise into place once. Only when script is running and motion is welcome. */
 @media (prefers-reduced-motion: no-preference) {
   .reveal-ready .l-reveal {
@@ -632,5 +640,9 @@ main {
     flex-direction: column;
     margin-top: 96px;
     padding: 24px 16px 40px;
+  }
+
+  .l-credits {
+    text-align: left;
   }
 }
