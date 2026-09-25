@@ -2,6 +2,10 @@
 
 > Qibla Line (https://qiblaline.com) is a free web app for finding the Qibla, the direction Muslims face to pray, without trusting the phone's compass. It lines a map up with a wall of the room you're in, then guides your turn with the gyroscope until it says "Facing the Qibla". It runs in the browser on iPhone and Android and can be added to the Home Screen. No account, no analytics.
 
+## Who made it
+
+Qibla Line was created by Hash Milhan (https://hashir.net). The source for the app and the explainer film is public on GitHub under hashmil.
+
 ## Why it avoids the compass
 
 A phone's compass is a magnetometer. Indoors, steel, speakers, wiring and appliances bend the magnetic field, so the reading can be wrong with nothing on screen to show it. Walls don't move. Once the map is lined up with a wall of the building, the direction is geometry, and the turn is measured by the gyroscope, which magnets don't affect.
@@ -43,5 +47,6 @@ Phone compasses drift indoors. Speakers, wiring and steel pull the needle off co
 - [About Qibla Line](https://qiblaline.com/about): the landing page, readable on any device
 - [Open the app on a computer](https://qiblaline.com/app)
 - [Explainer film (MP4, 48 s)](https://qiblaline.com/video/qibla-line.mp4)
+- [Hash Milhan](https://hashir.net): creator
 - [App source code](https://github.com/hashmil/qibla-line): Vite, React, TypeScript, MapLibre GL JS
 - [Film source](https://github.com/hashmil/qibla-line-explainer): HyperFrames and Three.js

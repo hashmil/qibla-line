@@ -4,6 +4,8 @@ Qibla Line is a mobile-first web app for finding the Qibla without trusting your
 
 Live app: <https://qiblaline.com>
 
+Created by [Hash Milhan](https://hashir.net). The explainer film's source is at [hashmil/qibla-line-explainer](https://github.com/hashmil/qibla-line-explainer).
+
 ## How it works
 
 1. **Place.** Use your location, pick one of 187 cities (each shows its Qibla bearing), or enter coordinates.
