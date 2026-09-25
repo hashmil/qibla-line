@@ -5,14 +5,15 @@ import { join } from "node:path";
 import react from "@vitejs/plugin-react";
 import QRCode from "qrcode";
 
-const SITE_URL = "https://qiblaline.com";
+// The QR code sits on the computer landing page, so whoever scans it already has the context: open the app
+const QR_URL = "https://qiblaline.com/app";
 
 // The landing page's QR code, drawn at build time so there is no runtime dependency
 function qrCode(): Plugin {
   return {
     name: "qibla-line-qr",
     async transformIndexHtml(html) {
-      const svg = await QRCode.toString(SITE_URL, {
+      const svg = await QRCode.toString(QR_URL, {
         type: "svg",
         margin: 0,
         errorCorrectionLevel: "M",

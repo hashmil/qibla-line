@@ -20,6 +20,17 @@ export function PlacePanel({ onUseLocation, onSelectCity, message, isLocating }:
 
       <p className="list-heading">Or pick a city</p>
       <CitySearch onSelect={onSelectCity} />
+
+      <p className="app-credit">
+        <a href="/about">About Qibla Line</a> · Created by{" "}
+        <a href="https://hashir.net" target="_blank" rel="noreferrer">
+          Hash Milhan
+        </a>{" "}
+        ·{" "}
+        <a href="https://github.com/hashmil/qibla-line" target="_blank" rel="noreferrer">
+          Source
+        </a>
+      </p>
     </section>
   );
 }

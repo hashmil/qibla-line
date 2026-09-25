@@ -6,6 +6,14 @@ Live app: <https://qiblaline.com>
 
 Created by [Hash Milhan](https://hashir.net). The explainer film's source is at [hashmil/qibla-line-explainer](https://github.com/hashmil/qibla-line-explainer).
 
+<p align="center">
+  <img src="public/landing/place.webp" width="240" alt="Place: use your location, or pick a city from a list that shows each city's Qibla bearing" />
+  <img src="public/landing/line-up.webp" width="240" alt="Line up: the map turned with the dial until a wall runs along the screen's grid, top edge facing 297 degrees" />
+  <img src="public/landing/face.webp" width="240" alt="Face: the amber line points straight up and the card reads Facing the Qibla" />
+</p>
+
+<p align="center"><em>Place, Line up, Face. Real screens from the app in Jumeirah, Dubai.</em></p>
+
 ## How it works
 
 1. **Place.** Use your location, pick one of 187 cities (each shows its Qibla bearing), or enter coordinates.
@@ -119,7 +127,7 @@ npm run deploy:workers
 
 ## Privacy
 
-Your location is used only on this device to calculate the Qibla line. It is not stored by this app. No analytics are included. Location is not sent to any custom backend; only map tile requests go to the tile providers (OpenStreetMap and OpenFreeMap). The only thing kept in browser storage is when you last dismissed the install prompt.
+Your location is used only on this device to calculate the Qibla line. It is not stored by this app. No analytics are included. Location is not sent to any custom backend; only map tile requests go to the tile providers (OpenStreetMap and OpenFreeMap). Browser storage keeps two things only: when you last dismissed the install prompt, and that the app has been opened on this device (so `/` goes straight to the app after the first visit).
 
 ## Map Provider
 
@@ -131,12 +139,14 @@ https://tile.openstreetmap.org/{z}/{x}/{y}.png
 
 The tiles are inverted in the style itself for the dark design. On top, building outlines are drawn from OpenStreetMap vector tiles served free by OpenFreeMap (`https://tiles.openfreemap.org/planet`, no key), so the walls users line up against read clearly. Attribution for both is visible on the map. Both sources are configured in `src/lib/mapStyle.ts` so they can be swapped later. The app does not bulk download, prefetch or cache map tiles.
 
-## Desktop Landing
+## Landing Page
 
-Computers get a landing page (the explainer film, how it works, a QR code for qiblaline.com) instead of the app. Phones and tablets get the app exactly as before.
+Computers get a landing page (the explainer film, how it works, questions, a QR code) instead of the app. Phones and tablets get the same page on their first visit, for context, with a fixed bar at the bottom: "Open Qibla Line" and "Add to Home Screen". Once the app has been opened, `/` goes straight to the app on that phone.
 
-- An inline script at the top of `index.html` picks the mode before first paint. Computers are `(hover: hover) and (pointer: fine) and (min-width: 900px)`; iPads, which report themselves as Macs, are caught by touch support.
-- `/about` shows the landing page on every device, so phones and Google's phone-width crawler can read it. The build writes `about.html` from the built `index.html` with its own canonical URL and title (`vite.config.ts`). On phones the QR codes give way to an "Open Qibla Line" button.
+- An inline script at the top of `index.html` picks the mode before first paint. Computers are `(hover: hover) and (pointer: fine) and (min-width: 900px)`; iPads, which report themselves as Macs, are caught by touch support. A phone counts as having opened the app when `localStorage` has `qibla-line-opened` (set in `src/boot-app.tsx`) or a service worker controls the page (only the app registers one, so this covers phones from before the flag existed).
+- `/about` shows the landing page on every device. The build writes `about.html` from the built `index.html` with its own canonical URL and title (`vite.config.ts`). The app's Place screen links to it.
+- "Open Qibla Line" goes to `/app`; "Add to Home Screen" goes to `/app?install`, which opens the app with the install steps for that phone. The QR code on the computer page also points to `/app`, since whoever scans it has already seen the page.
+- The film autoplays, muted, on every device, except with reduced motion or on a slow connection (Data Saver, or the browser rating the connection 2G or 3G; only Chrome and Android report this). Then it shows the first frame and loads when played.
 - `/app`, `?app` and any installed app (display-mode standalone and friends, or iOS `navigator.standalone`) always get the app. The manifest `start_url` is `/app`.
 - `src/main.ts` is the only entry script. For the landing it runs `src/landing.ts` (video, Replay and sound buttons, section reveal); for the app it dynamic-imports `src/boot-app.tsx`, so the map and the app bundle never download for landing visitors.
 - The service worker is registered only by the app. Because the app chunks are no longer named in `index.html`, the build writes `shell-assets.json` listing every script and stylesheet, and the worker precaches from it.
@@ -163,6 +173,7 @@ magick og-card.png -quality 88 -sampling-factor 4:4:4 public/og-card.jpg
 ## Project Structure
 
 ```txt
+LICENSE                MIT
 index.html             mode picker, landing page markup, meta tags
 src/
   main.ts              entry: landing page or dynamic import of the app
@@ -179,6 +190,7 @@ src/
 public/
   icons/
   landing/             app screens shown on the landing page
+  licenses/            font licence served with the site
   video/               explainer film and poster
   og-card.jpg          1200x630 share card, from design/og-card.html
   llms.txt             summary for AI assistants
@@ -190,6 +202,18 @@ DESIGN.md              colour and type tokens, and where each came from
 prompt/
   qibla-line-prompt.md the original build prompt, kept for history
 ```
+
+## Licence and Credits
+
+The code is MIT licensed; see [LICENSE](LICENSE).
+
+Built with and on:
+
+- Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, available under the Open Database Licence. Raster tiles from the OpenStreetMap tile servers, used under the OSMF Tile Usage Policy.
+- Building outlines from [OpenFreeMap](https://openfreemap.org) vector tiles, © [OpenMapTiles](https://openmaptiles.org), data from OpenStreetMap.
+- [MapLibre GL JS](https://maplibre.org) (BSD-3-Clause), [React](https://react.dev) (MIT), [Lucide](https://lucide.dev) icons (ISC), [node-qrcode](https://github.com/soldair/node-qrcode) at build time (MIT).
+- [Chivo and Chivo Mono](https://github.com/Omnibus-Type/Chivo) © The Chivo Project Authors, SIL Open Font License 1.1, via [Fontsource](https://fontsource.org). The licence is served with the site at `/licenses/chivo-OFL.txt`.
+- The explainer film is its own project: [hashmil/qibla-line-explainer](https://github.com/hashmil/qibla-line-explainer).
 
 ## Known Limitations
 

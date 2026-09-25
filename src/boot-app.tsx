@@ -7,6 +7,13 @@ import App from "./App";
 // index.html carries the landing page title; the app window keeps the short name
 document.title = "Qibla Line";
 
+// From now on "/" opens the app on this phone instead of the first-visit landing page
+try {
+  localStorage.setItem("qibla-line-opened", "1");
+} catch {
+  // Storage blocked: the landing page shows again next time, which is harmless
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />

@@ -4,7 +4,7 @@
 
 ## Who made it
 
-Qibla Line was created by Hash Milhan (https://hashir.net). The source for the app and the explainer film is public on GitHub under hashmil.
+Qibla Line was created by Hash Milhan (https://hashir.net). The source for the app and the explainer film is on GitHub under hashmil, MIT licensed.
 
 ## Why it avoids the compass
 
@@ -31,11 +31,11 @@ The direction is the initial great-circle bearing from the chosen location to th
 
 ## Privacy
 
-Location is used only on the device to work out the line. It is not stored or sent to any backend; the only network requests are for map tiles (OpenStreetMap raster tiles, and building outlines from OpenFreeMap vector tiles). No analytics. The only thing kept in browser storage is when the install prompt was last dismissed.
+Location is used only on the device to work out the line. It is not stored or sent to any backend; the only network requests are for map tiles (OpenStreetMap raster tiles, and building outlines from OpenFreeMap vector tiles). No analytics. Browser storage keeps two things only: when the install prompt was last dismissed, and that the app has been opened on the device.
 
-## On computers
+## The landing page
 
-Computers get a landing page with a 48 second explainer film and a QR code to open the app on a phone. The same page is at https://qiblaline.com/about on any device. Anyone can still open the app on a computer at https://qiblaline.com/app.
+Computers get a landing page with a 48 second explainer film and a QR code to open the app on a phone. Phones get the same page on their first visit, with buttons to open the app or add it to the Home Screen; after that, qiblaline.com opens the app directly. The page is always at https://qiblaline.com/about, and the app is always at https://qiblaline.com/app.
 
 ## Film transcript
 
@@ -43,7 +43,7 @@ Phone compasses drift indoors. Speakers, wiring and steel pull the needle off co
 
 ## Links
 
-- [Qibla Line](https://qiblaline.com/): the app on phones, the landing page on computers
+- [Qibla Line](https://qiblaline.com/): the landing page on computers and on a phone's first visit, the app after that
 - [About Qibla Line](https://qiblaline.com/about): the landing page, readable on any device
 - [Open the app on a computer](https://qiblaline.com/app)
 - [Explainer film (MP4, 48 s)](https://qiblaline.com/video/qibla-line.mp4)

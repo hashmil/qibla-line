@@ -4,22 +4,31 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <script>
-      // Runs before first paint. Computers get the landing page, phones and tablets the app.
-      // /app, ?app and an installed app always open the app.
+      // Runs before first paint and picks what "/" shows:
+      // - computers: the landing page
+      // - phones and tablets: the landing page on the first visit, for context; the app once it has been opened
+      // - /app, ?app and an installed app: always the app
+      // - /about: always the landing page, so anyone (and Google's phone crawler) can read it
       (function () {
         var root = document.documentElement;
         try {
           var path = location.pathname.replace(/\/+$/, "");
           var forced = path === "/app" || new URLSearchParams(location.search).has("app");
-          // /about is the landing page on every device, so phones (and Google's phone crawler) can read it
           var about = path === "/about";
           var installed =
             navigator.standalone === true ||
             matchMedia("(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay)").matches;
           // iPadOS reports itself as a Mac, so use touch support to tell them apart
           var ipad = /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
-          var computer = matchMedia("(hover: hover) and (pointer: fine) and (min-width: 900px)").matches;
-          root.dataset.mode = about ? "landing" : forced || installed || ipad || !computer ? "app" : "landing";
+          var computer = !ipad && matchMedia("(hover: hover) and (pointer: fine) and (min-width: 900px)").matches;
+          // Set by the app when it opens (src/boot-app.tsx). Only the app registers the service worker,
+          // so a controlling worker also means this phone has used the app before this flag existed.
+          var opened = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+          try {
+            opened = opened || localStorage.getItem("qibla-line-opened") === "1";
+          } catch (storageError) {}
+          var app = !about && (forced || installed || (!computer && opened));
+          root.dataset.mode = app ? "app" : "landing";
         } catch (error) {
           root.dataset.mode = "app";
         }
@@ -171,7 +180,7 @@
           <a href="#how">How it works</a>
           <a href="#why">Why not the compass</a>
           <a class="l-desk" href="/app">Open the app here anyway</a>
-          <a class="l-phone" href="/">Open the app</a>
+          <a class="l-phone" href="/app">Open the app</a>
         </nav>
       </header>
 
@@ -210,7 +219,6 @@
               </div>
             </div>
           </div>
-          <a class="l-open l-phone" href="/">Open Qibla Line</a>
         </section>
 
         <section class="l-how l-reveal" id="how" aria-labelledby="how-title">
@@ -275,18 +283,22 @@
 
         <section class="l-get l-reveal" aria-labelledby="get-title">
           <div class="l-qr-code l-qr-large l-desk"><!--qr--></div>
-          <h2 id="get-title"><span class="l-desk">Open it on your&nbsp;phone.</span><span class="l-phone">Open it&nbsp;now.</span></h2>
+          <h2 id="get-title"><span class="l-desk">Open it on your&nbsp;phone.</span><span class="l-phone">Keep it on your Home&nbsp;Screen.</span></h2>
           <p class="l-lead l-desk">Point your camera at the code. It runs in the browser on iPhone and Android and adds to your Home Screen. No app store, no&nbsp;account.</p>
-          <p class="l-lead l-phone">It runs in the browser on iPhone and Android and adds to your Home Screen. No app store, no&nbsp;account.</p>
-          <a class="l-open l-phone" href="/">Open Qibla Line</a>
+          <p class="l-lead l-phone">It runs in the browser on iPhone and Android. Add it to your Home Screen and it opens full screen, ready at prayer time. No app store, no&nbsp;account.</p>
           <p class="l-get-links l-desk"><span class="num">qiblaline.com</span><a href="/app">Or open it on this&nbsp;computer</a></p>
         </section>
       </main>
 
+      <nav class="l-dock l-phone" aria-label="Open the app">
+        <a class="l-open" href="/app">Open Qibla Line</a>
+        <a class="l-install" href="/app?install">Add to Home Screen</a>
+      </nav>
+
       <footer class="l-foot">
         <p>Free, with no analytics. Your location is used only on your phone to work out the line, and the app doesn't store&nbsp;it.</p>
         <p class="l-credits">
-          Map data © OpenStreetMap contributors, building outlines by&nbsp;OpenFreeMap<br />
+          Map data © OpenStreetMap contributors. Building outlines: OpenFreeMap, ©&nbsp;OpenMapTiles<br />
           Created by <a href="https://hashir.net">Hash&nbsp;Milhan</a> · <a href="https://github.com/hashmil/qibla-line">Source on&nbsp;GitHub</a>
         </p>
       </footer>

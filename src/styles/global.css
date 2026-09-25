@@ -327,6 +327,21 @@ button:disabled {
   font-size: 14px;
 }
 
+/* End of the city list: what the app is, who made it, where the code is */
+.app-credit {
+  margin: 32px 0 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--dim);
+  text-align: center;
+}
+
+.app-credit a {
+  color: var(--text);
+  text-underline-offset: 3px;
+  text-decoration-color: var(--dim);
+}
+
 .city-results .empty {
   margin: 0;
   padding: 14px 0;

@@ -32,5 +32,11 @@
     "vite": "8.1.0",
     "vitest": "4.1.9",
     "wrangler": "4.105.0"
+  },
+  "license": "MIT",
+  "author": "Hash Milhan (https://hashir.net)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashmil/qibla-line.git"
   }
 }

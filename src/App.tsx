@@ -133,6 +133,18 @@ export default function App() {
   const [installOpen, setInstallOpen] = useState(false);
   const autoInstallCheckedRef = useRef(false);
 
+  // "Add to Home Screen" on the landing page links to /app?install: show the steps straight away
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("install")) return;
+    url.searchParams.delete("install");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    if (install.installed) return;
+    autoInstallCheckedRef.current = true;
+    setInstallOpen(true);
+    // Runs once on open; install.installed is read as it stands then
+  }, []);
+
   // Offer installation once, shortly after opening, unless installed or recently dismissed.
   // Re-checks when Chrome's install prompt becomes available, which can arrive after load.
   useEffect(() => {

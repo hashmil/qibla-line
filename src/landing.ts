@@ -1,4 +1,4 @@
-// Desktop landing page: the film plays muted on a loop. "Play with sound" restarts it
+// Landing page: the film plays muted on a loop. "Play with sound" restarts it
 // from the beginning with sound, after which the same button mutes and unmutes.
 // "Replay" always goes back to the start.
 export function setupLanding() {
@@ -11,13 +11,17 @@ export function setupLanding() {
   // src and poster are set here so nothing downloads while the page is showing the app
   video.poster = video.dataset.poster ?? "";
   video.src = video.dataset.src ?? "";
-  video.preload = "auto";
   controls.hidden = false;
 
-  // autoplay as well as play(): a tab opened in the background starts once it is shown.
-  // Not when the viewer asked for less motion or less data (Data Saver on a phone).
-  const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
-  if (!saveData && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  // Autoplay, muted, on every device. On a slow connection or with Data Saver on, show the first
+  // frame and load the film only when asked. Not with reduced motion either.
+  // (navigator.connection is Chrome and Android only; Safari always autoplays.)
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (slowConnection() || reducedMotion) {
+    video.preload = "none";
+  } else {
+    video.preload = "auto";
+    // autoplay as well as play(): a tab opened in the background starts once it is shown
     video.autoplay = true;
     video.play().catch(() => undefined);
   }
@@ -68,4 +72,14 @@ function revealSections() {
   );
   document.documentElement.classList.add("reveal-ready");
   document.querySelectorAll(".l-reveal").forEach((section) => observer.observe(section));
+}
+
+type NetworkInformation = { saveData?: boolean; effectiveType?: string };
+
+function slowConnection(): boolean {
+  const connection = (navigator as Navigator & { connection?: NetworkInformation }).connection;
+  if (!connection) return false;
+  if (connection.saveData) return true;
+  // Chrome's own speed class. Its raw downlink estimate swings too much between loads to use.
+  return connection.effectiveType !== undefined && ["slow-2g", "2g", "3g"].includes(connection.effectiveType);
 }
