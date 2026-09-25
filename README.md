@@ -1,31 +1,34 @@
 # Qibla Line
 
-Qibla Line is a mobile-first web app for finding the Qibla by aligning a real map with the physical world around you. It shows your current or selected position, draws a great-circle Qibla line to the Kaaba, and lets you rotate the map manually until roads, walls or buildings match what you can see.
+Qibla Line is a mobile-first web app for finding the Qibla without trusting your phone's compass. Compasses drift indoors near steel, speakers, wiring and appliances. Qibla Line uses the walls of your building instead: you lay the phone along a wall, turn a dial until the map lines up with that wall, then turn until the app says you're facing the Qibla.
 
-Live app: <https://qibla-line.pages.dev>
+Live app: <https://qiblaline.com>
+
+## How it works
+
+1. **Place.** Use your location, pick one of 187 cities (each shows its Qibla bearing), or enter coordinates.
+2. **Line up.** Lay the phone flat with one edge along a wall. Turn the dial until the same wall on the map runs along the on-screen grid. The grid is fixed to the screen, so its lines stay parallel to the phone's edges while the map turns underneath.
+3. **Face.** Tap "It lines up", pick the phone up and hold it flat. The app follows your turn with the gyroscope and guides you ("Turn left 12°") until it shows "Facing the Qibla" in amber.
+
+The gyroscope measures how far the phone has turned relative to where it started. Unlike the magnetometer that drives the compass, it is not disturbed by magnets or steel. If motion access is refused or unavailable, the app falls back to a fixed reading: "The Qibla is 34° left of the phone's top edge", with the amber line on the map as the direction.
 
 ## Features
 
-- Map-first Qibla direction using MapLibre GL JS and OpenStreetMap raster tiles.
-- Manual map rotation with touch gestures and optional on-screen fine controls.
-- Qibla-up, north-up and re-centre controls.
-- Browser geolocation with city and manual coordinate fallbacks.
-- Searchable local city list with no external geocoding API.
-- Optional compass mode that rotates the map to follow the phone heading, keeping the map's Qibla line as the primary direction cue.
-- PWA manifest, iPhone home-screen metadata and app shell service worker.
-- Client-side only calculations, with no analytics and no custom backend.
-
-## Why Map Alignment Comes First
-
-Indoor compass readings can drift, especially near metal, chargers, lifts and vehicles. Qibla Line treats the map as the primary reference: align the map visually, then read the gold line. Compass mode is optional and only requested after a tap; when enabled, the map rotates to follow the phone heading.
+- Three-step flow: Place, Line up, Face
+- Rotary dial and a screen-fixed alignment grid for lining the map up with a wall
+- Gyroscope turn guidance after alignment, with a 2° "facing" threshold (4° to leave it, so it doesn't flicker)
+- Optional compass button that makes the map follow the phone's heading, for outdoors or as a cross-check
+- Zoom buttons, pinch zoom and recentre; pinching never zooms the whole page on iPhone
+- Searchable local city list with each city's bearing; no external geocoding API
+- Installable PWA: offers itself on first visit with per-device steps (iPhone, Android, Mac, Windows, in-app browsers), self-hosted fonts, a service worker that caches the app shell
+- Dark night-use design; amber is used only for the Qibla (see `DESIGN.md`)
+- Client-side only, no analytics, no backend
 
 ## Tech Stack
 
-- Vite
-- React
-- TypeScript
-- MapLibre GL JS
-- OpenStreetMap raster tiles
+- Vite, React, TypeScript
+- MapLibre GL JS with OpenStreetMap raster tiles
+- Fontsource (Chivo, Chivo Mono), lucide-react icons
 - Vitest
 - Cloudflare Pages, with a Workers static-assets fallback
 
@@ -45,12 +48,13 @@ theta = atan2(y, x)
 bearing = (degrees(theta) + 360) % 360
 ```
 
-Distance is calculated with the Haversine formula. The rendered map line uses spherical interpolation, not a simple two-point screen line.
+Distance is calculated with the Haversine formula. The rendered map line uses spherical interpolation, not a simple two-point screen line. From Dubai city centre the result is 258.2° and 1,631 km.
 
-The calculation and line interpolation live in:
+The calculation, line interpolation and turn tracking live in:
 
 - `src/lib/qibla.ts`
 - `src/lib/geo.ts`
+- `src/lib/gyro.ts`
 
 ## Run Locally
 
@@ -59,7 +63,7 @@ npm install
 npm run dev
 ```
 
-Then open the Vite URL printed by the command.
+Then open the Vite URL printed by the command. Location works on `localhost`; on a phone over the local network it needs HTTPS.
 
 ## Useful Scripts
 
@@ -73,23 +77,31 @@ npm run deploy:workers
 npm run deploy
 ```
 
-## Test and Build
-
-```bash
-npm run test
-npm run build
-```
-
-## Deploy To Cloudflare Pages
+## Deploy
 
 Wrangler should already be authenticated on the deployment machine.
 
 ```bash
 npx wrangler whoami
-npm run deploy:pages
+npm run deploy
 ```
 
-The Pages script builds the app and uploads `dist` to the `qibla-line` Pages project.
+`npm run deploy` builds the app, refuses to continue if tracked files have uncommitted changes, and uploads `dist` to the `qibla-line` Cloudflare Pages project on its production branch (`main`).
+
+Domains:
+
+- `qiblaline.com` is the production domain, a Pages custom domain with a proxied CNAME to `qibla-line.pages.dev`
+- `www.qiblaline.com` redirects to `qiblaline.com` (301, zone redirect rule), so the installed app has one origin
+- `qibla-line.pages.dev` still serves the same deployment
+
+Preview a branch without touching production:
+
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name qibla-line --branch <name> --commit-dirty=true
+```
+
+That publishes to `https://<name>.qibla-line.pages.dev`.
 
 `wrangler.jsonc` is intentionally kept as the Worker fallback configuration, so Wrangler may warn that the file is not being used for Pages. The Pages deploy script explicitly uploads `dist` and is the primary deployment path.
 
@@ -105,7 +117,7 @@ npm run deploy:workers
 
 ## Privacy
 
-Your location is used only on this device to calculate the Qibla line. It is not stored by this app. No analytics are included. Location is not sent to any custom backend; only map tile requests go to the tile provider.
+Your location is used only on this device to calculate the Qibla line. It is not stored by this app. No analytics are included. Location is not sent to any custom backend; only map tile requests go to the tile provider. The only thing kept in browser storage is when you last dismissed the install prompt.
 
 ## Map Provider
 
@@ -115,29 +127,34 @@ The default map uses OpenStreetMap raster tiles through MapLibre GL JS:
 https://tile.openstreetmap.org/{z}/{x}/{y}.png
 ```
 
-Attribution is visible in the map. The tile URL is configured in `src/lib/mapStyle.ts` so it can be swapped later. The app does not bulk download, prefetch or aggressively cache OSM tiles.
+The tiles are inverted in the style itself for the dark design. Attribution is visible on the map. The tile URL is configured in `src/lib/mapStyle.ts` so it can be swapped later. The app does not bulk download, prefetch or cache OSM tiles.
 
 ## Project Structure
 
 ```txt
 src/
-  App.tsx
-  components/
-  data/
-  lib/
-  styles/
+  App.tsx              step flow, geolocation, compass and gyroscope wiring
+  components/          TopBar, PlacePanel, CitySearch, MapView, Dial,
+                       MapButtons, FaceCard, InstallSheet
+  data/cities.ts
+  lib/                 qibla, geo, gyro, compass, install, mapStyle, format
+  styles/global.css
   types/
 public/
   icons/
   manifest.webmanifest
   sw.js
+DESIGN.md              colour and type tokens, and where each came from
 prompt/
-  qibla-line-prompt.md
+  qibla-line-prompt.md the original build prompt, kept for history
 ```
 
 ## Known Limitations
 
-- Geolocation requires HTTPS, except on localhost.
-- Compass mode depends on browser and device support, may be approximate, and rotates the map only after heading data is available.
+- Geolocation and motion sensors need HTTPS, except on localhost.
+- Alignment is only as accurate as OpenStreetMap's drawing of your building. In well-mapped areas that is usually within a degree or two.
+- The gyroscope drifts slowly. Over the time it takes to turn and pray this is well under a degree, but tap "Line up again" if you have moved around a lot.
+- iPhone asks for motion access the first time you tap "It lines up". Refusing it leaves the fixed-angle fallback.
+- Compass mode depends on browser and device support and is unreliable indoors, which is why it is optional.
 - OSM public tiles are suitable for light use. A dedicated tile provider is recommended for heavier public traffic.
 - MapLibre is a substantial dependency, so the production bundle has an expected large-chunk warning.
