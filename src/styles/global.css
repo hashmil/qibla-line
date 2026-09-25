@@ -431,6 +431,14 @@ button:disabled {
   text-decoration: none;
 }
 
+/* On short screens the map buttons reach down to the credit; move it clear of them */
+@media (max-height: 760px) {
+  .osm-credit {
+    right: auto;
+    left: 16px;
+  }
+}
+
 /* Match step: dial */
 
 .match-controls {
