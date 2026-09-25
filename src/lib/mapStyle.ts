@@ -23,7 +23,7 @@ export function createRasterStyle(tileUrl = OSM_TILE_URL): StyleSpecification {
         // Inverted: brightness-min above brightness-max flips light tiles to dark
         paint: {
           "raster-saturation": -0.85,
-          "raster-contrast": 0.1,
+          "raster-contrast": 0.3,
           "raster-brightness-min": 0.62,
           "raster-brightness-max": 0.02
         }

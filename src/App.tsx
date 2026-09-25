@@ -2,10 +2,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject }
 import { DEFAULT_CITY } from "./data/cities";
 import { calculateQibla, normalise180 } from "./lib/qibla";
 import { getCompassReading, requestCompassPermission } from "./lib/compass";
+import { createTurnTracker, headingAfterTurn, isRoughlyFlat } from "./lib/gyro";
 import { usePwaInstall } from "./lib/install";
 import type { AppLocation, CompassReading, CompassStatus } from "./types";
 import { Dial } from "./components/Dial";
-import { FaceCard } from "./components/FaceCard";
+import { FaceCard, type FaceMode } from "./components/FaceCard";
 import { InstallSheet } from "./components/InstallSheet";
 import { MapButtons } from "./components/MapButtons";
 import { MapView, type MapViewHandle } from "./components/MapView";
@@ -85,6 +86,8 @@ function compassHelp(status: CompassStatus, reading: CompassReading | null): str
   }
 }
 
+type GyroStatus = "off" | "requesting" | "starting" | "active" | "denied" | "unsupported";
+
 function useHeight(ref: RefObject<HTMLElement | null>, key: unknown): number {
   const [height, setHeight] = useState(0);
 
@@ -120,6 +123,11 @@ export default function App() {
   const [message, setMessage] = useState("");
   const [compassStatus, setCompassStatus] = useState<CompassStatus>("idle");
   const [compassReading, setCompassReading] = useState<CompassReading | null>(null);
+  const [gyroStatus, setGyroStatus] = useState<GyroStatus>("off");
+  const [flat, setFlat] = useState(true);
+  const [gridActive, setGridActive] = useState(false);
+  const matchedBearingRef = useRef(0);
+  const trackerRef = useRef(createTurnTracker());
 
   const install = usePwaInstall();
   const [installOpen, setInstallOpen] = useState(false);
@@ -170,6 +178,53 @@ export default function App() {
       }
     };
   }, [compassStatus]);
+
+  // After "It lines up", follow the phone's turns with the gyroscope so the map stays
+  // lined up with the room while the user turns to face the Qibla.
+  useEffect(() => {
+    if (gyroStatus !== "starting" && gyroStatus !== "active") return undefined;
+
+    let frame: number | null = null;
+    let turned = 0;
+    let flatNow = true;
+    let started = false;
+    const noReadings = window.setTimeout(() => setGyroStatus((s) => (s === "starting" ? "unsupported" : s)), 2500);
+
+    // Redraw at most once a frame
+    const apply = () => {
+      frame = null;
+      mapRef.current?.setBearing(headingAfterTurn(matchedBearingRef.current, turned));
+      setFlat(flatNow);
+    };
+
+    // Count every reading as it arrives, even when frames are throttled (Low Power Mode),
+    // so a quick turn between frames can't be misread across the 0/360 seam
+    const onOrientation = (event: DeviceOrientationEvent) => {
+      if (typeof event.alpha !== "number") return;
+      turned = trackerRef.current.update(event.alpha);
+      flatNow = isRoughlyFlat(event.beta, event.gamma);
+      if (!started) {
+        started = true;
+        setGyroStatus((s) => (s === "starting" ? "active" : s));
+      }
+      if (frame === null) frame = window.requestAnimationFrame(apply);
+    };
+
+    window.addEventListener("deviceorientation", onOrientation);
+    return () => {
+      window.clearTimeout(noReadings);
+      window.removeEventListener("deviceorientation", onOrientation);
+      if (frame !== null) window.cancelAnimationFrame(frame);
+    };
+  }, [gyroStatus === "starting" || gyroStatus === "active"]);
+
+  // The grid brightens while the map is turning, then settles back to faint
+  useEffect(() => {
+    if (step !== "match") return undefined;
+    setGridActive(true);
+    const timer = window.setTimeout(() => setGridActive(false), 1200);
+    return () => window.clearTimeout(timer);
+  }, [mapBearing, step]);
 
   function selectLocation(nextLocation: AppLocation) {
     locationRequestIdRef.current += 1;
@@ -225,6 +280,8 @@ export default function App() {
       return;
     }
 
+    stopGuide();
+
     const requestId = compassRequestIdRef.current + 1;
     compassRequestIdRef.current = requestId;
     setCompassStatus("requesting");
@@ -251,21 +308,74 @@ export default function App() {
     mapRef.current?.setBearing(bearing);
   }
 
+  function stopGuide() {
+    trackerRef.current.reset();
+    setGyroStatus("off");
+    setFlat(true);
+  }
+
+  async function confirmMatch() {
+    matchedBearingRef.current = mapBearing;
+    setStep("face");
+    if (compassFollowing) return;
+
+    trackerRef.current.reset();
+    setGyroStatus("requesting");
+    try {
+      // Called straight from the tap, which iOS requires for the permission prompt
+      const permission = await requestCompassPermission(false);
+      setGyroStatus(permission === "granted" ? "starting" : permission);
+    } catch {
+      setGyroStatus("unsupported");
+    }
+  }
+
+  function lineUpAgain() {
+    stopGuide();
+    setStep("match");
+    mapRef.current?.setBearing(matchedBearingRef.current);
+  }
+
   const changePlace = () => {
     stopCompassFollow();
+    stopGuide();
     setStep("place");
   };
+
+  const faceMode: FaceMode =
+    compassFollowing || gyroStatus === "active"
+      ? "live"
+      : gyroStatus === "requesting" || gyroStatus === "starting"
+        ? "starting"
+        : "static";
+
+  const staticReason =
+    gyroStatus === "denied"
+      ? "Motion access is off, so use the amber line on the map."
+      : gyroStatus === "unsupported"
+        ? "This phone can't track turns, so use the amber line on the map."
+        : undefined;
 
   const copy: Record<Step, { title: string; help: string }> = {
     place: { title: "Where are you praying?", help: "Your location stays in this browser. It is only used to work out the Qibla." },
     match: {
-      title: "Match the map to your room",
-      help: compassHelp(compassStatus, compassReading) ?? "Turn the dial until a road or wall on the map lines up with one you can see."
+      title: "Line the map up with a wall",
+      help:
+        compassHelp(compassStatus, compassReading) ??
+        "Lay the phone along a wall, then turn the dial until that wall runs along the grid."
     },
-    face: {
-      title: "Face along the amber line",
-      help: compassHelp(compassStatus, compassReading) ?? "Keep the phone as it is. The amber line points to the Kaaba."
-    }
+    face:
+      faceMode === "static"
+        ? {
+            title: "Face along the amber line",
+            help: "The map is lined up with your wall, so the amber line points to the Kaaba."
+          }
+        : {
+            title: "Turn to face the Qibla",
+            help:
+              compassHelp(compassStatus, compassReading) ??
+              "Pick the phone up and hold it flat in front of you."
+          }
   };
 
   return (
@@ -289,6 +399,9 @@ export default function App() {
         onInstall={step === "place" && !install.installed ? () => setInstallOpen(true) : undefined}
       />
 
+      {step === "match" ? <div className={gridActive ? "align-grid is-active" : "align-grid"} aria-hidden="true" /> : null}
+      {step === "face" && faceMode === "live" ? <div className="ahead-mark" aria-hidden="true" /> : null}
+
       {step === "place" ? (
         <PlacePanel
           onUseLocation={useBrowserLocation}
@@ -309,8 +422,8 @@ export default function App() {
       {step === "match" ? (
         <section ref={bottomRef} className="match-controls" aria-label="Turn the map">
           <Dial bearing={mapBearing} qiblaBearing={qibla.bearing} onTurn={turnMap} />
-          <button className="primary-action" type="button" onClick={() => setStep("face")}>
-            It matches
+          <button className="primary-action" type="button" onClick={confirmMatch}>
+            It lines up
           </button>
         </section>
       ) : null}
@@ -318,13 +431,15 @@ export default function App() {
       {step === "face" ? (
         <FaceCard
           ref={bottomRef}
+          mode={faceMode}
           relativeBearing={relativeBearing}
+          flat={flat}
+          staticReason={staticReason}
           qiblaBearing={qibla.bearing}
           distanceKm={qibla.distanceKm}
           placeLabel={location.label}
           accuracy={location.accuracy}
-          compassFollowing={compassFollowing}
-          onRematch={() => setStep("match")}
+          onRematch={lineUpAgain}
           onChangePlace={changePlace}
         />
       ) : null}

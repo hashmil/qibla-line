@@ -118,8 +118,8 @@ export function Dial({ bearing, qiblaBearing, onTurn }: DialProps) {
         </g>
       </svg>
       <div className="dial-read" aria-hidden="true">
-        <b>{Math.round(normalise360(bearing))}°</b>
-        <small>top of screen</small>
+        <b>{Math.round(normalise360(bearing)) % 360}°</b>
+        <small>top edge faces</small>
       </div>
     </div>
   );

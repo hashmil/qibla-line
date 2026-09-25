@@ -21,7 +21,8 @@ function getScreenOrientationAngle(): number {
   return typeof legacyWindow.orientation === "number" ? legacyWindow.orientation : 0;
 }
 
-export async function requestCompassPermission(): Promise<"granted" | "denied" | "unsupported"> {
+// absolute=true asks for the magnetic compass; false is enough for gyroscope-only rotation
+export async function requestCompassPermission(absolute = true): Promise<"granted" | "denied" | "unsupported"> {
   if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) {
     return "unsupported";
   }
@@ -29,7 +30,7 @@ export async function requestCompassPermission(): Promise<"granted" | "denied" |
   const orientationEvent = DeviceOrientationEvent as DeviceOrientationEventWithPermission;
   if (typeof orientationEvent.requestPermission === "function") {
     try {
-      const permission = await orientationEvent.requestPermission(true);
+      const permission = await orientationEvent.requestPermission(absolute);
       return permission === "granted" ? "granted" : "denied";
     } catch {
       const permission = await orientationEvent.requestPermission();

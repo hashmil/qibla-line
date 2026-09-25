@@ -8,6 +8,7 @@
   --dim: #7c7f84;
   --amber: #ffb23e;
   --on-amber: #1a1204;
+  --grid: rgba(216, 210, 196, 0.3);
   --radius: 12px;
   --sans: "Chivo", system-ui, -apple-system, sans-serif;
   --mono: "Chivo Mono", ui-monospace, "SF Mono", monospace;
@@ -385,7 +386,7 @@ button:disabled {
   position: absolute;
   z-index: 4;
   top: calc(var(--top-h) + 12px);
-  right: 12px;
+  right: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -423,7 +424,7 @@ button:disabled {
 
 .osm-credit {
   position: fixed;
-  left: 12px;
+  right: 16px;
   bottom: calc(var(--bottom-h) + 8px);
   font-size: 11px;
   color: var(--dim);
@@ -545,29 +546,41 @@ button:disabled {
 .face-card {
   position: absolute;
   z-index: 4;
-  left: 12px;
-  right: 12px;
-  bottom: calc(12px + var(--safe-bottom));
+  left: 16px;
+  right: 16px;
+  bottom: calc(16px + var(--safe-bottom));
   padding: 18px 16px 16px;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--panel);
 }
 
+/* Fixed line counts, so the card keeps its height as the guidance changes */
 .face-card .turn {
   margin: 0;
+  overflow: hidden;
   font-size: 25px;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .face-card .turn.is-aligned {
   color: var(--amber);
 }
 
+.face-card .turn.is-static {
+  font-size: 20px;
+  line-height: 1.25;
+  white-space: normal;
+}
+
 .face-card .turn-help {
+  min-height: calc(2 * 1.4em);
   margin: 6px 0 0;
   font-size: 14px;
+  line-height: 1.4;
   color: var(--dim);
 }
 
@@ -717,4 +730,43 @@ p.install-steps {
 .install-browser .install-steps {
   font-size: 14px;
   gap: 6px;
+}
+
+/* Alignment grid: fixed to the screen, so its lines stay parallel to the phone's edges
+   while the map turns underneath. One line passes through the user's dot. */
+
+.align-grid {
+  position: absolute;
+  z-index: 2;
+  top: var(--top-h);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: 48px 48px;
+  /* Runs on under the dial; the horizontal line still passes through the dot,
+     which sits midway between the top bar and the dial */
+  background-position: calc(50% + 24px) calc((100dvh - var(--top-h) - var(--bottom-h)) / 2);
+  opacity: 0.5;
+  transition: opacity 300ms ease-out;
+}
+
+.align-grid.is-active {
+  opacity: 1;
+  transition-duration: 120ms;
+}
+
+/* "Straight ahead" reference while the gyroscope is following the user's turn */
+.ahead-mark {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--top-h) + 10px);
+  left: 50%;
+  margin-left: -8px;
+  border: 8px solid transparent;
+  border-top: 12px solid var(--text);
+  pointer-events: none;
 }

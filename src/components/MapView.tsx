@@ -34,7 +34,7 @@ function createMarkerElement(className: string, label: string): HTMLElement {
 }
 
 function locationZoom(location: AppLocation): number {
-  return location.source === "geolocation" ? 17 : 14;
+  return location.source === "geolocation" ? 18 : 14;
 }
 
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
@@ -197,7 +197,8 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     const map = mapRef.current;
     if (!map) return;
 
-    map.easeTo({ padding: { top: padding.top, bottom: padding.bottom, left: 0, right: 0 }, duration: 240 });
+    // Instant, so a location fly-to that starts at the same moment can't cancel it
+    map.setPadding({ top: padding.top, bottom: padding.bottom, left: 0, right: 0 });
   }, [padding.top, padding.bottom]);
 
   useEffect(() => {

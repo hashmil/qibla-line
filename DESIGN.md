@@ -19,8 +19,9 @@ Amber means "the Qibla" and nothing else. Every other element stays neutral.
 | `--dim` | `#7c7f84` | secondary text, ticks | |
 | `--amber` | `#ffb23e` | Qibla line, Kaaba mark, current step, primary action, "facing" state | low-blue warm light, the colour used for night instrument lighting |
 | `--on-amber` | `#1a1204` | text on amber | |
+| `--grid` | `--text` at 30% | alignment grid lines | quiet enough to sit over the map, clear enough to judge parallel |
 
-Map tiles: OSM raster inverted in the style itself (`raster-brightness-min` 0.62 above `raster-brightness-max` 0.02, saturation -0.85), so the map sits in the same dark range as the chrome.
+Map tiles: OSM raster inverted in the style itself (`raster-brightness-min` 0.62 above `raster-brightness-max` 0.02, saturation -0.85, contrast 0.3 so building outlines stay readable), so the map sits in the same dark range as the chrome.
 
 ## Typography
 
@@ -45,5 +46,7 @@ Radius 12px on buttons and cards: large touch targets used half-asleep, soft eno
 - Top bar: app name, place button, step bars, title, one line of help
 - Place panel: use-my-location, city search with each city's bearing, manual coordinates
 - Dial: 360° ring with N/E/S/W, 30° labels, 5° ticks, amber Kaaba mark; drag turns the map
+- Alignment grid: 48px squares fixed to the screen from the top bar to the bottom edge (showing either side of the dial), one line through the user's dot; faint at rest, full while the map turns
 - Map buttons: zoom in, zoom out, recentre, compass
-- Face card: angle statement, place and distance, Re-match, Change place
+- Face card: live turn guidance from the gyroscope ("Turn right 12°", then "Facing the Qibla" in amber; one-line headline and two-line help so the card never changes height), static angle from the phone's top edge when motion isn't available, place and distance, Line up again, Change place
+- Straight-ahead mark: small triangle at the top of the map while guidance is live
