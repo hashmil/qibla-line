@@ -3,7 +3,7 @@ import { DEFAULT_CITY } from "./data/cities";
 import { calculateQibla, normalise180 } from "./lib/qibla";
 import { getCompassReading, requestCompassPermission } from "./lib/compass";
 import { createTurnTracker, headingAfterTurn, isRoughlyFlat } from "./lib/gyro";
-import { usePwaInstall } from "./lib/install";
+import { detectPlatform, rememberInstallDismissed, shouldAutoShowInstall, usePwaInstall } from "./lib/install";
 import type { AppLocation, CompassReading, CompassStatus } from "./types";
 import { Dial } from "./components/Dial";
 import { FaceCard, type FaceMode } from "./components/FaceCard";
@@ -131,6 +131,24 @@ export default function App() {
 
   const install = usePwaInstall();
   const [installOpen, setInstallOpen] = useState(false);
+  const autoInstallCheckedRef = useRef(false);
+
+  // Offer installation once, shortly after opening, unless installed or recently dismissed.
+  // Re-checks when Chrome's install prompt becomes available, which can arrive after load.
+  useEffect(() => {
+    if (install.installed || autoInstallCheckedRef.current) return undefined;
+    if (!shouldAutoShowInstall(detectPlatform(), install.canPrompt)) return undefined;
+    const timer = window.setTimeout(() => {
+      autoInstallCheckedRef.current = true;
+      setInstallOpen(true);
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [install.installed, install.canPrompt]);
+
+  function closeInstall() {
+    rememberInstallDismissed();
+    setInstallOpen(false);
+  }
 
   const topHeight = useHeight(topBarRef, step);
   const bottomHeight = useHeight(bottomRef, step);
@@ -449,9 +467,9 @@ export default function App() {
           canPrompt={install.canPrompt}
           onPromptInstall={async () => {
             await install.promptInstall();
-            setInstallOpen(false);
+            closeInstall();
           }}
-          onClose={() => setInstallOpen(false)}
+          onClose={closeInstall}
         />
       ) : null}
     </main>

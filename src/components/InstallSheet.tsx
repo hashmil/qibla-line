@@ -1,6 +1,6 @@
-import { X } from "lucide-react";
+import { AppWindow, EllipsisVertical, ExternalLink, Menu, MonitorDown, Share, SquarePlus, X } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
-import { GUIDES, GUIDE_GROUPS, detectPlatform, type InstallGuide } from "../lib/install";
+import { GUIDES, GUIDE_GROUPS, detectPlatform, type InstallGuide, type InstallStep } from "../lib/install";
 
 type InstallSheetProps = {
   canPrompt: boolean;
@@ -8,18 +8,46 @@ type InstallSheetProps = {
   onClose: () => void;
 };
 
-function Steps({ guide }: { guide: InstallGuide }) {
+// Each tile shows the control the user is about to tap, drawn the way the browser draws it
+function StepTile({ step }: { step: InstallStep }) {
+  const size = 22;
+  switch (step.icon) {
+    case "share":
+      return <Share aria-hidden="true" size={size} />;
+    case "add-home":
+      return <SquarePlus aria-hidden="true" size={size} />;
+    case "menu-dots":
+      return <EllipsisVertical aria-hidden="true" size={size} />;
+    case "menu-lines":
+      return <Menu aria-hidden="true" size={size} />;
+    case "install":
+      return <MonitorDown aria-hidden="true" size={size} />;
+    case "open-browser":
+      return <ExternalLink aria-hidden="true" size={size} />;
+    case "dock":
+      return <AppWindow aria-hidden="true" size={size} />;
+    case "add":
+      return <span className="tile-word">{step.target}</span>;
+  }
+}
+
+function Steps({ guide, compact = false }: { guide: InstallGuide; compact?: boolean }) {
   return (
     <>
-      {guide.steps.length > 1 ? (
-        <ol className="install-steps">
-          {guide.steps.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      ) : (
-        <p className="install-steps">{guide.steps[0]}</p>
-      )}
+      <ol className={compact ? "install-steps is-compact" : "install-steps"}>
+        {guide.steps.map((step) => (
+          <li key={step.lead + step.target}>
+            <span className="step-tile">
+              <StepTile step={step} />
+            </span>
+            <span className="step-text">
+              {step.lead}
+              <strong>{step.target}</strong>
+              {step.tail}
+            </span>
+          </li>
+        ))}
+      </ol>
       {guide.note ? <p className="install-note">{guide.note}</p> : null}
     </>
   );
@@ -29,6 +57,7 @@ export function InstallSheet({ canPrompt, onPromptInstall, onClose }: InstallShe
   const platform = useMemo(() => detectPlatform(), []);
   const guide = GUIDES[platform];
   const closeRef = useRef<HTMLButtonElement | null>(null);
+  const isComputer = platform === "desktop-chromium" || platform === "mac-safari" || platform === "desktop-firefox";
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -48,38 +77,48 @@ export function InstallSheet({ canPrompt, onPromptInstall, onClose }: InstallShe
         aria-labelledby="install-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="install-head">
-          <h2 id="install-title">Install Qibla Line</h2>
-          <button ref={closeRef} type="button" className="icon-button" onClick={onClose} aria-label="Close">
-            <X aria-hidden="true" size={20} />
-          </button>
-        </div>
-        <p className="install-intro">
-          It opens full screen from your Home Screen, without the browser bars, so it's one tap away at prayer time.
-        </p>
+        <button ref={closeRef} type="button" className="icon-button install-close" onClick={onClose} aria-label="Close">
+          <X aria-hidden="true" size={20} />
+        </button>
 
-        <h3 className="install-for">
-          {platform === "unknown" ? "On this device" : `On this ${guide.device}, in ${guide.browser}`}
-        </h3>
+        <div className="install-hero">
+          <img src="/icons/icon-192.png" alt="" width={64} height={64} />
+          <div>
+            <h2 id="install-title">{isComputer ? "Install Qibla Line" : "Add Qibla Line to your Home Screen"}</h2>
+            <p>Opens full screen, one tap away at prayer time.</p>
+          </div>
+        </div>
+
         {canPrompt ? (
-          <button type="button" className="secondary-action" onClick={onPromptInstall}>
-            Install now
+          <button type="button" className="primary-action" onClick={onPromptInstall}>
+            Install
           </button>
         ) : (
-          <Steps guide={guide} />
+          <>
+            <p className="install-for">
+              {platform === "unknown" ? "On this device" : `On this ${guide.device} in ${guide.browser}`}
+            </p>
+            <Steps guide={guide} />
+          </>
         )}
+
+        <button type="button" className="text-button install-later" onClick={onClose}>
+          Not now
+        </button>
 
         <details className="install-others">
           <summary>Other phones and computers</summary>
-          {GUIDE_GROUPS.map((group) => (
+          {GUIDE_GROUPS.map((group) => ({ ...group, platforms: group.platforms.filter((id) => id !== platform) }))
+            .filter((group) => group.platforms.length > 0)
+            .map((group) => (
             <div key={group.label} className="install-group">
-              <h4>{group.label}</h4>
+              <h3>{group.label}</h3>
               {group.platforms.map((id) => (
-                <div key={id} className="install-browser">
-                  <h5>{GUIDES[id].browser}</h5>
-                  <Steps guide={GUIDES[id]} />
-                </div>
-              ))}
+                  <div key={id} className="install-browser">
+                    <h4>{GUIDES[id].browser}</h4>
+                    <Steps guide={GUIDES[id]} compact />
+                  </div>
+                ))}
             </div>
           ))}
         </details>
