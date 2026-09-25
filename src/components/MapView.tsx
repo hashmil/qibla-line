@@ -46,6 +46,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   const userMarkerRef = useRef<Marker | null>(null);
   const kaabaMarkerRef = useRef<Marker | null>(null);
   const loadedRef = useRef(false);
+  const flightRef = useRef<{ center: [number, number]; zoom: number } | null>(null);
   const [mapError, setMapError] = useState("");
 
   useImperativeHandle(
@@ -164,10 +165,10 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       source?.setData(createQiblaLineCollection(location));
       userMarkerRef.current?.setLngLat([location.lon, location.lat]);
       kaabaMarkerRef.current?.setLngLat([KAABA.lon, KAABA.lat]);
-      map.easeTo({
-        center: [location.lon, location.lat],
-        zoom: locationZoom(location),
-        duration: 520
+      flightRef.current = { center: [location.lon, location.lat], zoom: locationZoom(location) };
+      map.easeTo({ ...flightRef.current, duration: 520 });
+      map.once("moveend", () => {
+        flightRef.current = null;
       });
     };
 
@@ -197,8 +198,14 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     const map = mapRef.current;
     if (!map) return;
 
-    // Instant, so a location fly-to that starts at the same moment can't cancel it
-    map.setPadding({ top: padding.top, bottom: padding.bottom, left: 0, right: 0 });
+    const next = { top: padding.top, bottom: padding.bottom, left: 0, right: 0 };
+    // Any camera change cancels a running ease, so if we're mid-flight to a new location,
+    // re-aim that flight with the new padding instead of stopping it short.
+    if (flightRef.current && map.isEasing()) {
+      map.easeTo({ ...flightRef.current, padding: next, duration: 420 });
+    } else {
+      map.setPadding(next);
+    }
   }, [padding.top, padding.bottom]);
 
   useEffect(() => {
