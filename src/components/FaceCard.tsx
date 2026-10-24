@@ -78,8 +78,10 @@ export const FaceCard = forwardRef<HTMLElement, FaceCardProps>(function FaceCard
 
   return (
     <section ref={ref} className="face-card" aria-label="Qibla direction">
-      <p className={facing ? "turn is-aligned" : mode === "static" ? "turn is-static" : "turn"} role="status" aria-live="polite">
-        {headline}
+      <p className={facing ? "turn is-aligned" : mode === "static" ? "turn is-static" : "turn"}>{headline}</p>
+      {/* The headline changes with every degree of turn; announce only the state */}
+      <p className="visually-hidden" role="status">
+        {live ? (facing ? "Facing the Qibla" : "Turn to face the Qibla") : headline}
       </p>
       <p className="turn-help">{detail}</p>
       <div className="face-meta">

@@ -15,6 +15,8 @@ export type City = Coordinates & {
   city: string;
   country: string;
   region?: string;
+  // Other spellings people search for, such as "Mecca"
+  aliases?: string[];
 };
 
 export type CompassStatus = "idle" | "requesting" | "active" | "denied" | "unsupported" | "error";
@@ -22,6 +24,6 @@ export type CompassStatus = "idle" | "requesting" | "active" | "denied" | "unsup
 export type CompassReading = {
   heading: number;
   accuracy?: number;
-  source: "webkit" | "absolute" | "relative";
+  source: "webkit" | "absolute";
 };
 

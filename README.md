@@ -69,22 +69,26 @@ The calculation, line interpolation and turn tracking live in:
 ## Run Locally
 
 ```bash
-npm install
-npm run dev
+git lfs install
+git lfs pull
+bun install
+bun run dev
 ```
 
-Then open the Vite URL printed by the command. Location works on `localhost`; on a phone over the local network it needs HTTPS.
+The landing film (`public/video/qibla-line.mp4`) is stored in Git LFS. Without `git-lfs` the checkout holds a small pointer file instead, and the build stops rather than ship it.
+
+The dev server listens on port 4300. Then open the Vite URL printed by the command. Location works on `localhost`; on a phone over the local network it needs HTTPS.
 
 ## Useful Scripts
 
 ```bash
-npm run dev
-npm run test
-npm run build
-npm run preview
-npm run deploy:pages
-npm run deploy:workers
-npm run deploy
+bun run dev
+bun run test
+bun run build
+bun run preview
+bun run deploy:pages
+bun run deploy:workers
+bun run deploy
 ```
 
 ## Deploy
@@ -92,11 +96,13 @@ npm run deploy
 Wrangler should already be authenticated on the deployment machine.
 
 ```bash
-npx wrangler whoami
-npm run deploy
+bunx wrangler whoami
+bun run deploy
 ```
 
-`npm run deploy` builds the app, refuses to continue if tracked files have uncommitted changes, and uploads `dist` to the `qibla-line` Cloudflare Pages project on its production branch (`main`).
+`bun run deploy` builds the app, refuses to continue if tracked files have uncommitted changes, and uploads `dist` to the `qibla-line` Cloudflare Pages project on its production branch (`main`).
+
+The build stamps two files copied from `public/`: `sw.js` gets a hash of the build as its cache name, so each deploy installs a fresh service worker, and `_headers` gets the CSP hash of the inline mode script in `index.html`. Security headers (CSP, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors`) live in `public/_headers`; if you change a tile provider, add its host to `img-src` and `connect-src` there.
 
 Domains:
 
@@ -107,8 +113,8 @@ Domains:
 Preview a branch without touching production:
 
 ```bash
-npm run build
-npx wrangler pages deploy dist --project-name qibla-line --branch <name> --commit-dirty=true
+bun run build
+bunx wrangler pages deploy dist --project-name qibla-line --branch <name> --commit-dirty=true
 ```
 
 That publishes to `https://<name>.qibla-line.pages.dev`.
@@ -120,7 +126,7 @@ That publishes to `https://<name>.qibla-line.pages.dev`.
 The repository also includes a Worker static-assets fallback:
 
 ```bash
-npm run deploy:workers
+bun run deploy:workers
 ```
 
 `wrangler.jsonc` serves `./dist` through the `ASSETS` binding and uses single-page app fallback handling.
@@ -166,7 +172,7 @@ Computers get a landing page (the explainer film, how it works, questions, a QR 
 `public/og-card.jpg` (1200x630) is rendered from `design/og-card.html`, which uses the app's fonts and the real Face screen. Render it with Playwright using the installed Chrome, then save as JPEG:
 
 ```bash
-npx -y playwright screenshot --channel chrome --viewport-size=1200,630 "file://$PWD/design/og-card.html" og-card.png
+bunx playwright screenshot --channel chrome --viewport-size=1200,630 "file://$PWD/design/og-card.html" og-card.png
 magick og-card.png -quality 88 -sampling-factor 4:4:4 public/og-card.jpg
 ```
 

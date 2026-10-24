@@ -45,23 +45,28 @@ export function getCompassReading(event: DeviceOrientationEvent): CompassReading
   const compassEvent = event as CompassEvent;
   const screenAngle = getScreenOrientationAngle();
 
-  if (typeof compassEvent.webkitCompassHeading === "number") {
+  const webkitHeading = compassEvent.webkitCompassHeading;
+  if (typeof webkitHeading === "number" && Number.isFinite(webkitHeading)) {
     const reading: CompassReading = {
-      heading: normalise360(compassEvent.webkitCompassHeading + screenAngle),
+      heading: normalise360(webkitHeading + screenAngle),
       source: "webkit"
     };
 
-    if (typeof compassEvent.webkitCompassAccuracy === "number") {
-      reading.accuracy = compassEvent.webkitCompassAccuracy;
+    // iOS reports -1 while the compass is uncalibrated
+    const accuracy = compassEvent.webkitCompassAccuracy;
+    if (typeof accuracy === "number" && Number.isFinite(accuracy) && accuracy >= 0) {
+      reading.accuracy = accuracy;
     }
 
     return reading;
   }
 
-  if (typeof event.alpha === "number") {
+  // A relative alpha counts from wherever the phone pointed when tracking started, so
+  // it can't say where north is. Firefox and some Android browsers only send these.
+  if (event.absolute && typeof event.alpha === "number" && Number.isFinite(event.alpha)) {
     return {
       heading: normalise360(360 - event.alpha + screenAngle),
-      source: event.absolute ? "absolute" : "relative"
+      source: "absolute"
     };
   }
 

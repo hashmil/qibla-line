@@ -1,6 +1,6 @@
 import type { Feature, FeatureCollection, LineString } from "geojson";
 import type { Coordinates } from "../types";
-import { KAABA, toDegrees, toRadians } from "./qibla";
+import { KAABA, normalise180, toDegrees, toRadians } from "./qibla";
 
 type Vector3 = [number, number, number];
 
@@ -54,9 +54,16 @@ export function createGreatCircleCoordinates(
   const startVector = toVector(start);
   const endVector = toVector(end);
 
+  // atan2 wraps longitude at ±180, which would draw a segment across the whole map for
+  // a path over the antimeridian (Hawaii, Alaska, Samoa). Keep each step continuous;
+  // MapLibre draws longitudes beyond ±180 on the neighbouring world copy.
+  let previousLon: number | null = null;
   return Array.from({ length: safePoints }, (_, index) => {
     const fraction = index / (safePoints - 1);
-    return toCoordinates(interpolateVector(startVector, endVector, fraction));
+    const [lon, lat] = toCoordinates(interpolateVector(startVector, endVector, fraction));
+    const unwrapped: number = previousLon === null ? lon : previousLon + normalise180(lon - previousLon);
+    previousLon = unwrapped;
+    return [unwrapped, lat];
   });
 }
 

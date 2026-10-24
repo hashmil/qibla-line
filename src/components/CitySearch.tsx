@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { CITIES } from "../data/cities";
+import { parseCoordinate } from "../lib/coordinates";
 import { calculateQiblaBearing } from "../lib/qibla";
 import type { AppLocation, City } from "../types";
 
@@ -12,6 +13,25 @@ function cityLabel(city: City): string {
   return `${city.city}, ${city.country}`;
 }
 
+// Lower case without accents, so "medine" or "Sao Paulo" still match
+function searchable(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+function coordinateInputProps(error: string) {
+  return {
+    inputMode: "text" as const,
+    autoCapitalize: "off",
+    autoCorrect: "off",
+    spellCheck: false,
+    "aria-invalid": error ? true : undefined,
+    "aria-describedby": error ? "coordinates-error" : undefined
+  };
+}
+
 export function CitySearch({ onSelect }: CitySearchProps) {
   const [query, setQuery] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -20,10 +40,12 @@ export function CitySearch({ onSelect }: CitySearchProps) {
   const [manualError, setManualError] = useState("");
 
   const matches = useMemo(() => {
-    const normalised = query.trim().toLowerCase();
+    const normalised = searchable(query.trim());
     const found = normalised
       ? CITIES.filter((city) =>
-          [city.city, city.country, city.region].filter(Boolean).join(" ").toLowerCase().includes(normalised)
+          searchable([city.city, city.country, city.region, ...(city.aliases ?? [])].filter(Boolean).join(" ")).includes(
+            normalised
+          )
         )
       : CITIES;
     return found.slice(0, 12);
@@ -48,11 +70,11 @@ export function CitySearch({ onSelect }: CitySearchProps) {
       return;
     }
 
-    const parsedLat = Number(trimmedLat);
-    const parsedLon = Number(trimmedLon);
+    const parsedLat = parseCoordinate(trimmedLat, "N", "S");
+    const parsedLon = parseCoordinate(trimmedLon, "E", "W");
 
-    if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLon)) {
-      setManualError("Enter numbers for latitude and longitude.");
+    if (parsedLat === null || parsedLon === null) {
+      setManualError("Enter numbers such as 25.2048, or add N, S, E or W, such as 33.8688 S.");
       return;
     }
 
@@ -82,24 +104,18 @@ export function CitySearch({ onSelect }: CitySearchProps) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           type="search"
-          role="combobox"
-          aria-autocomplete="list"
           aria-controls="city-results"
-          aria-expanded={matches.length > 0}
-          aria-haspopup="listbox"
           autoComplete="off"
           placeholder="Search city or country"
         />
       </div>
 
-      <div className="city-results" id="city-results" role="listbox" aria-label="Cities">
+      <div className="city-results" id="city-results" role="group" aria-label="Cities">
         {matches.map((city) => (
           <button
             key={`${city.city}-${city.country}`}
             type="button"
             onClick={() => chooseCity(city)}
-            role="option"
-            aria-selected={false}
             aria-label={`${cityLabel(city)}, Qibla ${calculateQiblaBearing(city).toFixed(1)} degrees`}
           >
             <span className="city-name">
@@ -123,16 +139,31 @@ export function CitySearch({ onSelect }: CitySearchProps) {
 
       {advancedOpen ? (
         <form className="manual-form" onSubmit={submitManual}>
+          {/* Text keyboard: the iPhone decimal keypad has no minus sign */}
           <label>
             Latitude
-            <input value={lat} onChange={(event) => setLat(event.target.value)} inputMode="decimal" placeholder="25.2048" />
+            <input
+              value={lat}
+              onChange={(event) => setLat(event.target.value)}
+              {...coordinateInputProps(manualError)}
+              placeholder="25.2048"
+            />
           </label>
           <label>
             Longitude
-            <input value={lon} onChange={(event) => setLon(event.target.value)} inputMode="decimal" placeholder="55.2708" />
+            <input
+              value={lon}
+              onChange={(event) => setLon(event.target.value)}
+              {...coordinateInputProps(manualError)}
+              placeholder="55.2708"
+            />
           </label>
           <button type="submit">Use coordinates</button>
-          {manualError ? <p className="form-error">{manualError}</p> : null}
+          {manualError ? (
+            <p className="form-error" id="coordinates-error" role="alert">
+              {manualError}
+            </p>
+          ) : null}
         </form>
       ) : null}
     </div>

@@ -2,7 +2,7 @@
 <html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <script>
       // Runs before first paint and picks what "/" shows:
       // - computers: the landing page
@@ -31,6 +31,13 @@
           root.dataset.mode = app ? "app" : "landing";
         } catch (error) {
           root.dataset.mode = "app";
+        }
+        // Only the app blocks page zoom (a pinch belongs to the map); the landing page
+        // stays zoomable for anyone who needs larger text
+        if (root.dataset.mode === "app") {
+          document
+            .querySelector('meta[name="viewport"]')
+            .setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
         }
       })();
     </script>

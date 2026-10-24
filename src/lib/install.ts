@@ -188,8 +188,10 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-// Chrome fires beforeinstallprompt once, possibly before React mounts, so catch it at module load
-let deferredPrompt: BeforeInstallPromptEvent | null = null;
+// Chrome fires beforeinstallprompt once, possibly before this module loads (main.ts keeps
+// that early one) or before React mounts, so catch it at module load too
+let deferredPrompt =
+  typeof window === "undefined" ? null : ((window.qiblaEarlyInstallPrompt as BeforeInstallPromptEvent | undefined) ?? null);
 const promptListeners = new Set<() => void>();
 
 if (typeof window !== "undefined") {
