@@ -9,5 +9,15 @@ import { setupLanding } from "./landing";
 if (document.documentElement.dataset.mode === "landing") {
   setupLanding();
 } else {
+  // Chrome fires beforeinstallprompt once, and it can arrive before the app bundle has
+  // downloaded. Hold it here for src/lib/install.ts so the install button still works.
+  window.addEventListener(
+    "beforeinstallprompt",
+    (event) => {
+      event.preventDefault();
+      window.qiblaEarlyInstallPrompt = event;
+    },
+    { once: true }
+  );
   void import("./boot-app");
 }

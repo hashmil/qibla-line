@@ -130,6 +130,13 @@ button:disabled {
 .kaaba-marker {
   width: 16px;
   height: 16px;
+}
+
+/* On a child: MapLibre overwrites the marker element's own transform to position it */
+.kaaba-marker span {
+  display: block;
+  width: 100%;
+  height: 100%;
   transform: rotate(45deg);
   border: 2px solid var(--amber);
   background: var(--night);
@@ -451,6 +458,14 @@ button:disabled {
   .osm-credit {
     right: auto;
     left: 16px;
+  }
+}
+
+/* Shorter still, the column would run under the dial. Pinch zooms on a phone, so the
+   zoom pair goes first. */
+@media (max-height: 700px) {
+  .zoom-pair {
+    display: none;
   }
 }
 
@@ -890,7 +905,7 @@ button:disabled {
   background-size: 48px 48px;
   /* Runs on under the dial; the horizontal line still passes through the dot,
      which sits midway between the top bar and the dial */
-  background-position: calc(50% + 24px) calc((100dvh - var(--top-h) - var(--bottom-h)) / 2);
+  background-position: calc(50% + 24px) calc((var(--view-h, 100dvh) - var(--top-h) - var(--bottom-h)) / 2);
   opacity: 0.5;
   transition: opacity 300ms ease-out;
 }

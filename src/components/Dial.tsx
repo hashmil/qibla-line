@@ -79,16 +79,26 @@ export function Dial({ bearing, qiblaBearing, onTurn }: DialProps) {
     dragRef.current = null;
   }
 
+  // Slider keys raise and lower the value it reports (the map bearing), as screen readers expect
   function handleKeyDown(event: KeyboardEvent<SVGSVGElement>) {
     const step = event.shiftKey ? 5 : 1;
-    if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
-      event.preventDefault();
-      onTurn(bearing + step);
-    } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
-      event.preventDefault();
-      onTurn(bearing - step);
-    }
+    const turns: Record<string, number> = {
+      ArrowRight: bearing + step,
+      ArrowUp: bearing + step,
+      ArrowLeft: bearing - step,
+      ArrowDown: bearing - step,
+      PageUp: bearing + 15,
+      PageDown: bearing - 15,
+      Home: 0
+    };
+    const next = turns[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    onTurn(next);
   }
+
+  // Round before wrapping, so 359.6 reads 0 rather than 360
+  const roundedBearing = normalise360(Math.round(bearing));
 
   return (
     <div className="dial">
@@ -102,8 +112,8 @@ export function Dial({ bearing, qiblaBearing, onTurn }: DialProps) {
         aria-label="Turn the map"
         aria-valuemin={0}
         aria-valuemax={359}
-        aria-valuenow={Math.round(normalise360(bearing))}
-        aria-valuetext={`Map turned to ${Math.round(normalise360(bearing))} degrees`}
+        aria-valuenow={roundedBearing}
+        aria-valuetext={`Map turned to ${roundedBearing} degrees`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

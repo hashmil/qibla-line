@@ -1,7 +1,8 @@
 import { defineConfig } from "vitest/config";
 import type { Plugin } from "vite";
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import QRCode from "qrcode";
 
@@ -65,8 +66,49 @@ function aboutPage(): Plugin {
   };
 }
 
+// Fills in the build-time placeholders in two files copied from public/:
+// - sw.js gets a hash of the build as its cache name, so every deploy installs a new
+//   worker and drops the old cache
+// - _headers gets the CSP hashes of index.html's inline scripts (the mode script),
+//   so they stay allowed whenever that script changes
+function buildStamps(): Plugin {
+  let outDir = "dist";
+  const fill = (file: string, placeholder: string, value: string) => {
+    const path = join(outDir, file);
+    const text = readFileSync(path, "utf8");
+    if (!text.includes(placeholder)) throw new Error(`${file}: missing ${placeholder}`);
+    writeFileSync(path, text.replaceAll(placeholder, value));
+  };
+
+  return {
+    name: "qibla-line-build-stamps",
+    apply: "build",
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    closeBundle() {
+      // The film is stored in Git LFS. Without git-lfs a checkout holds a small pointer
+      // file instead, which would replace the live film if deployed.
+      const film = readFileSync(join(outDir, "video", "qibla-line.mp4"));
+      if (film.subarray(0, 40).toString("utf8").startsWith("version https://git-lfs")) {
+        throw new Error("public/video/qibla-line.mp4 is a Git LFS pointer: install git-lfs and run git lfs pull");
+      }
+
+      const html = readFileSync(join(outDir, "index.html"), "utf8");
+      const assets = readFileSync(join(outDir, "shell-assets.json"), "utf8");
+      fill("sw.js", "__BUILD_ID__", createHash("sha256").update(html).update(assets).digest("hex").slice(0, 12));
+
+      // Executable inline scripts only: JSON-LD isn't run, so CSP doesn't apply to it
+      const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/ld\+json)[^>]*>([\s\S]*?)<\/script>/g)];
+      if (inline.length === 0) throw new Error("index.html: expected the inline mode script");
+      const hashes = inline.map(([, body]) => `'sha256-${createHash("sha256").update(body ?? "").digest("base64")}'`);
+      fill("_headers", "__INLINE_SCRIPT_HASHES__", [...new Set(hashes)].join(" "));
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), qrCode(), shellAssetList(), aboutPage()],
+  plugins: [react(), qrCode(), shellAssetList(), aboutPage(), buildStamps()],
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"]

@@ -3,7 +3,8 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import type { AppLocation } from "../types";
 import { KAABA } from "../lib/qibla";
 import { createQiblaLineCollection } from "../lib/geo";
-import { createRasterStyle } from "../lib/mapStyle";
+import { QIBLA_LINE_SOURCE, createRasterStyle } from "../lib/mapStyle";
+import { normalise180 } from "../lib/qibla";
 
 export type MapViewHandle = {
   setBearing: (bearing: number) => void;
@@ -25,14 +26,15 @@ type MapViewProps = {
   onLocationVisibilityChange?: (visible: boolean) => void;
 };
 
-const LINE_SOURCE_ID = "qibla-line-source";
-const AMBER = "#ffb23e";
 
 function createMarkerElement(className: string, label: string): HTMLElement {
   const element = document.createElement("div");
   element.className = className;
   element.setAttribute("aria-label", label);
   element.setAttribute("role", "img");
+  // MapLibre positions markers by writing the element's transform, so any shape
+  // styling that needs its own transform (the Kaaba diamond) goes on a child
+  element.append(document.createElement("span"));
   return element;
 }
 
@@ -58,7 +60,6 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const userMarkerRef = useRef<Marker | null>(null);
-  const loadedRef = useRef(false);
   const locationRef = useRef(location);
   const headingLiveRef = useRef(headingLive);
   const visibilityCallbackRef = useRef(onLocationVisibilityChange);
@@ -67,6 +68,22 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   locationRef.current = location;
   headingLiveRef.current = headingLive;
   visibilityCallbackRef.current = onLocationVisibilityChange;
+
+  function syncLine(map: MapLibreMap) {
+    const source = map.getSource(QIBLA_LINE_SOURCE) as GeoJSONSource | undefined;
+    source?.setData(createQiblaLineCollection(locationRef.current));
+  }
+
+  // Each setBearing is a jump that fires move events and stops any running animation,
+  // so skip changes too small to see, and while a live heading drives the map, let
+  // gesture animations (inertia, double-tap zoom) finish before turning it again.
+  function applyBearing(bearing: number) {
+    const map = mapRef.current;
+    if (!map) return;
+    if (Math.abs(normalise180(bearing - map.getBearing())) < 0.05) return;
+    if (headingLiveRef.current && map.isEasing()) return;
+    map.setBearing(bearing);
+  }
 
   // A live heading turns the map every frame, and each turn would cut an animation
   // short, so camera moves are instant while it runs.
@@ -94,7 +111,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     ref,
     () => ({
       setBearing(bearing: number) {
-        mapRef.current?.setBearing(bearing);
+        applyBearing(bearing);
       },
       zoomIn() {
         mapRef.current?.zoomIn({ duration: duration(220) });
@@ -123,7 +140,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     try {
       map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: createRasterStyle(),
+        style: createRasterStyle(createQiblaLineCollection(location)),
         center: [location.lon, location.lat],
         zoom: locationZoom(location),
         bearing: 0,
@@ -166,45 +183,15 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       .setLngLat([KAABA.lon, KAABA.lat])
       .addTo(map);
 
-    map.on("load", () => {
-      loadedRef.current = true;
-      map.addSource(LINE_SOURCE_ID, {
-        type: "geojson",
-        data: createQiblaLineCollection(locationRef.current),
-        lineMetrics: true
-      });
-
-      map.addLayer({
-        id: "qibla-line-glow",
-        type: "line",
-        source: LINE_SOURCE_ID,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: {
-          "line-color": AMBER,
-          "line-opacity": 0.25,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 4, 8, 12, 14, 18, 20],
-          "line-blur": 6
-        }
-      });
-
-      map.addLayer({
-        id: "qibla-line-core",
-        type: "line",
-        source: LINE_SOURCE_ID,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: {
-          "line-color": AMBER,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 4, 2.4, 12, 3.6, 18, 5]
-        }
-      });
-    });
+    // The style carries the line for the place the map opened on; catch up if the
+    // place changed before the style was read
+    map.on("style.load", () => syncLine(map));
 
     mapRef.current = map;
 
     return () => {
       map.remove();
       mapRef.current = null;
-      loadedRef.current = false;
       userMarkerRef.current = null;
     };
   }, []);
@@ -217,9 +204,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     if (!map) return;
 
     userMarkerRef.current?.setLngLat([location.lon, location.lat]);
-    if (loadedRef.current) {
-      (map.getSource(LINE_SOURCE_ID) as GeoJSONSource | undefined)?.setData(createQiblaLineCollection(location));
-    }
+    syncLine(map);
     visibilityCallbackRef.current?.(true);
     map.jumpTo({ center: [location.lon, location.lat], zoom: locationZoom(location) });
   }, [location]);
@@ -260,12 +245,10 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   }, [padding.top, padding.bottom]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || followHeading === null) return;
-
-    map.setBearing(followHeading);
-    onBearingChange(map.getBearing());
-  }, [followHeading, onBearingChange]);
+    if (followHeading === null) return;
+    // The rotate event reports the new bearing
+    applyBearing(followHeading);
+  }, [followHeading]);
 
   return (
     <div className="map-shell" aria-label="Map showing the Qibla line">

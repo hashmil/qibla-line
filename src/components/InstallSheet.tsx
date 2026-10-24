@@ -59,14 +59,23 @@ export function InstallSheet({ canPrompt, onPromptInstall, onClose }: InstallShe
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const isComputer = platform === "desktop-chromium" || platform === "mac-safari" || platform === "desktop-firefox";
 
+  // The parent passes a new onClose on every render; keep the latest without re-running
+  // the effect, which would pull focus back to Close each time the app re-renders
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     closeRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      opener?.focus();
+    };
+  }, []);
 
   return (
     <div className="install-backdrop" onClick={onClose}>

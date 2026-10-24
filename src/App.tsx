@@ -22,9 +22,8 @@ const DEFAULT_LOCATION: AppLocation = {
 };
 
 const COMPASS_SOURCE_PRIORITY: Record<CompassReading["source"], number> = {
-  relative: 0,
-  absolute: 1,
-  webkit: 2
+  absolute: 0,
+  webkit: 1
 };
 
 function preferCompassReading(current: CompassReading | null, next: CompassReading): CompassReading {
@@ -87,6 +86,8 @@ function compassHelp(status: CompassStatus, reading: CompassReading | null): str
   }
 }
 
+const COMPASS_TIMEOUT_MS = 3000;
+
 type GyroStatus = "off" | "requesting" | "starting" | "active" | "denied" | "unsupported";
 
 function recentreLabel(location: AppLocation): string {
@@ -95,23 +96,52 @@ function recentreLabel(location: AppLocation): string {
   return `Centre on ${location.label}`;
 }
 
-function useHeight(ref: RefObject<HTMLElement | null>, key: unknown): number {
-  const [height, setHeight] = useState(0);
+// The same height the bar insets are measured against, for the alignment grid. 100dvh
+// can differ from it while iOS Safari's toolbars change.
+function useViewportHeight(): number {
+  const [height, setHeight] = useState(() => document.documentElement.clientHeight);
+
+  useEffect(() => {
+    const measure = () => setHeight(document.documentElement.clientHeight);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  return height;
+}
+
+// How far a bar reaches into the screen from its edge: the top bar's bottom, or the
+// distance from a bottom panel's top to the screen's bottom. Measuring the reach rather
+// than the height counts any gap under a floating card (the Face card sits 16px plus
+// the safe area above the edge), so the map padding and anything stacked above the
+// panel clear it.
+function useEdgeInset(ref: RefObject<HTMLElement | null>, edge: "top" | "bottom", key: unknown): number {
+  const [inset, setInset] = useState(0);
 
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) {
-      setHeight(0);
+      setInset(0);
       return undefined;
     }
 
-    const observer = new ResizeObserver(() => setHeight(element.getBoundingClientRect().height));
-    observer.observe(element);
-    setHeight(element.getBoundingClientRect().height);
-    return () => observer.disconnect();
-  }, [ref, key]);
+    const measure = () => {
+      const rect = element.getBoundingClientRect();
+      const viewport = document.documentElement.clientHeight;
+      setInset(Math.max(0, edge === "top" ? rect.bottom : viewport - rect.top));
+    };
 
-  return height;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    window.addEventListener("resize", measure);
+    measure();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [ref, edge, key]);
+
+  return inset;
 }
 
 export default function App() {
@@ -134,6 +164,10 @@ export default function App() {
   const [flat, setFlat] = useState(true);
   const [gridActive, setGridActive] = useState(false);
   const [locationInView, setLocationInView] = useState(true);
+  const stepRef = useRef(step);
+  const mapBearingRef = useRef(mapBearing);
+  stepRef.current = step;
+  mapBearingRef.current = mapBearing;
   const matchedBearingRef = useRef(0);
   const trackerRef = useRef(createTurnTracker());
 
@@ -153,7 +187,9 @@ export default function App() {
       .then((permission) => {
         if (cancelled || permission.state !== "granted") return;
         if (locationRequestIdRef.current !== requestId) return;
-        locateUser();
+        // Quiet: if the fix fails (a cold GPS indoors), stay on Place without an error,
+        // rather than greeting every launch with one.
+        locateUser({ quiet: true });
       })
       .catch(() => undefined);
 
@@ -191,8 +227,9 @@ export default function App() {
     setInstallOpen(false);
   }
 
-  const topHeight = useHeight(topBarRef, step);
-  const bottomHeight = useHeight(bottomRef, step);
+  const topHeight = useEdgeInset(topBarRef, "top", step);
+  const bottomHeight = useEdgeInset(bottomRef, "bottom", step);
+  const viewHeight = useViewportHeight();
 
   const qibla = useMemo(() => calculateQibla(location), [location]);
   const relativeBearing = normalise180(qibla.bearing - mapBearing);
@@ -202,9 +239,11 @@ export default function App() {
   useEffect(() => {
     if (compassStatus !== "active") return undefined;
 
+    let receivedHeading = false;
     const handleOrientation = (event: DeviceOrientationEvent) => {
       const nextReading = getCompassReading(event);
       if (nextReading) {
+        receivedHeading = true;
         pendingCompassReadingRef.current = preferCompassReading(pendingCompassReadingRef.current, nextReading);
 
         if (compassFrameRef.current !== null) return;
@@ -227,7 +266,16 @@ export default function App() {
     window.addEventListener("deviceorientationabsolute", handleOrientation);
     window.addEventListener("deviceorientation", handleOrientation);
 
+    // Computers and phones without a magnetometer never send a usable heading
+    const noHeading = window.setTimeout(() => {
+      if (receivedHeading) return;
+      compassRequestIdRef.current += 1;
+      setCompassStatus("unsupported");
+      if (stepRef.current === "face") void startGuide(mapBearingRef.current);
+    }, COMPASS_TIMEOUT_MS);
+
     return () => {
+      window.clearTimeout(noHeading);
       window.removeEventListener("deviceorientationabsolute", handleOrientation);
       window.removeEventListener("deviceorientation", handleOrientation);
       pendingCompassReadingRef.current = null;
@@ -294,7 +342,7 @@ export default function App() {
     setStep("match");
   }
 
-  function locateUser() {
+  function locateUser({ quiet = false }: { quiet?: boolean } = {}) {
     const requestId = locationRequestIdRef.current + 1;
     locationRequestIdRef.current = requestId;
 
@@ -323,7 +371,7 @@ export default function App() {
         if (locationRequestIdRef.current !== requestId) return;
 
         setIsLocating(false);
-        setMessage(geolocationErrorMessage(error));
+        if (!quiet) setMessage(geolocationErrorMessage(error));
       },
       {
         enableHighAccuracy: true,
@@ -336,6 +384,8 @@ export default function App() {
   async function toggleCompass() {
     if (compassOn) {
       stopCompassFollow();
+      // Hand Face back to gyroscope guidance rather than leaving it on the static card
+      if (step === "face") void startGuide(mapBearing);
       return;
     }
 
@@ -373,11 +423,10 @@ export default function App() {
     setFlat(true);
   }
 
-  async function confirmMatch() {
-    matchedBearingRef.current = mapBearing;
-    setStep("face");
-    if (compassFollowing) return;
-
+  // Follow the phone's turns from a known map bearing. Uses only refs and setters, so a
+  // stale copy (the compass timeout's) still works.
+  async function startGuide(fromBearing: number) {
+    matchedBearingRef.current = fromBearing;
     trackerRef.current.reset();
     setGyroStatus("requesting");
     try {
@@ -387,6 +436,13 @@ export default function App() {
     } catch {
       setGyroStatus("unsupported");
     }
+  }
+
+  function confirmMatch() {
+    matchedBearingRef.current = mapBearing;
+    setStep("face");
+    if (compassFollowing) return;
+    void startGuide(mapBearing);
   }
 
   function lineUpAgain() {
@@ -438,7 +494,14 @@ export default function App() {
   };
 
   return (
-    <main className="app-shell" style={{ ["--top-h" as string]: `${topHeight}px`, ["--bottom-h" as string]: `${bottomHeight}px` }}>
+    <main
+      className="app-shell"
+      style={{
+        ["--top-h" as string]: `${topHeight}px`,
+        ["--bottom-h" as string]: `${bottomHeight}px`,
+        ["--view-h" as string]: `${viewHeight}px`
+      }}
+    >
       <MapView
         ref={mapRef}
         location={location}
@@ -465,7 +528,7 @@ export default function App() {
 
       {step === "place" ? (
         <PlacePanel
-          onUseLocation={locateUser}
+          onUseLocation={() => locateUser()}
           onSelectCity={selectLocation}
           message={message}
           isLocating={isLocating}

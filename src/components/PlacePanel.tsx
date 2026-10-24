@@ -16,7 +16,11 @@ export function PlacePanel({ onUseLocation, onSelectCity, message, isLocating }:
         <LocateFixed aria-hidden="true" size={20} />
         {isLocating ? "Finding your location" : "Use my location"}
       </button>
-      {message ? <p className="place-message">{message}</p> : null}
+      {message ? (
+        <p className="place-message" role="alert">
+          {message}
+        </p>
+      ) : null}
 
       <p className="list-heading">Or pick a city</p>
       <CitySearch onSelect={onSelectCity} />
