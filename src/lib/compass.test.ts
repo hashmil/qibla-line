@@ -23,4 +23,18 @@ describe("getCompassReading", () => {
     expect(reading?.heading).toBe(270);
     expect(reading?.source).toBe("absolute");
   });
+
+  it("drops negative iOS accuracy, which means uncalibrated", () => {
+    const reading = getCompassReading({
+      webkitCompassHeading: 12,
+      webkitCompassAccuracy: -1
+    } as unknown as DeviceOrientationEvent);
+
+    expect(reading?.accuracy).toBeUndefined();
+  });
+
+  it("ignores non-finite headings", () => {
+    expect(getCompassReading({ webkitCompassHeading: Number.NaN } as unknown as DeviceOrientationEvent)).toBeNull();
+    expect(getCompassReading({ alpha: Number.NaN, absolute: true } as unknown as DeviceOrientationEvent)).toBeNull();
+  });
 });

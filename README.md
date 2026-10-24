@@ -55,8 +55,8 @@ The calculation and line interpolation live in:
 ## Run Locally
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Then open the Vite URL printed by the command.
@@ -64,20 +64,20 @@ Then open the Vite URL printed by the command.
 ## Useful Scripts
 
 ```bash
-npm run dev
-npm run test
-npm run build
-npm run preview
-npm run deploy:pages
-npm run deploy:workers
-npm run deploy
+bun run dev
+bun run test
+bun run build
+bun run preview
+bun run deploy:pages
+bun run deploy:workers
+bun run deploy
 ```
 
 ## Test and Build
 
 ```bash
-npm run test
-npm run build
+bun run test
+bun run build
 ```
 
 ## Deploy To Cloudflare Pages
@@ -85,11 +85,13 @@ npm run build
 Wrangler should already be authenticated on the deployment machine.
 
 ```bash
-npx wrangler whoami
-npm run deploy:pages
+bunx wrangler whoami
+bun run deploy:pages
 ```
 
 The Pages script builds the app and uploads `dist` to the `qibla-line` Pages project.
+
+Security headers (CSP, `Referrer-Policy`, `Permissions-Policy`) live in `public/_headers`, which both Pages and Workers static assets apply. If you change the tile provider, add its host to `img-src` and `connect-src` there. The build stamps `sw.js` with a hash of `index.html`, so each deploy gets a fresh service worker cache.
 
 `wrangler.jsonc` is intentionally kept as the Worker fallback configuration, so Wrangler may warn that the file is not being used for Pages. The Pages deploy script explicitly uploads `dist` and is the primary deployment path.
 
@@ -98,7 +100,7 @@ The Pages script builds the app and uploads `dist` to the `qibla-line` Pages pro
 The repository also includes a Worker static-assets fallback:
 
 ```bash
-npm run deploy:workers
+bun run deploy:workers
 ```
 
 `wrangler.jsonc` serves `./dist` through the `ASSETS` binding and uses single-page app fallback handling.

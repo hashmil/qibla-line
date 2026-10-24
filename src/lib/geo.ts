@@ -54,9 +54,28 @@ export function createGreatCircleCoordinates(
   const startVector = toVector(start);
   const endVector = toVector(end);
 
-  return Array.from({ length: safePoints }, (_, index) => {
+  const coordinates = Array.from({ length: safePoints }, (_, index) => {
     const fraction = index / (safePoints - 1);
     return toCoordinates(interpolateVector(startVector, endVector, fraction));
+  });
+
+  return unwrapLongitudes(coordinates);
+}
+
+// atan2 wraps longitude at ±180, which would draw a segment straight across the
+// whole map for paths that cross the antimeridian. Keep each step continuous;
+// MapLibre accepts longitudes outside ±180.
+function unwrapLongitudes(coordinates: [number, number][]): [number, number][] {
+  let previousLon: number | null = null;
+
+  return coordinates.map(([lon, lat]) => {
+    let unwrapped = lon;
+    if (previousLon !== null) {
+      while (unwrapped - previousLon > 180) unwrapped -= 360;
+      while (unwrapped - previousLon < -180) unwrapped += 360;
+    }
+    previousLon = unwrapped;
+    return [unwrapped, lat];
   });
 }
 

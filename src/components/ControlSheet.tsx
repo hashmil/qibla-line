@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, LocateFixed, Rotate3D, RotateCcw, RotateCw, Route } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, type Ref } from "react";
 import type { AppLocation, CompassReading, CompassStatus } from "../types";
 import { CitySearch } from "./CitySearch";
 import { CompassToggle } from "./CompassToggle";
@@ -18,7 +18,7 @@ type ControlSheetProps = {
   compassReading: CompassReading | null;
   onToggleCompass: () => void;
   compactPreferred?: boolean;
-  onHeightChange?: (height: number) => void;
+  ref?: Ref<HTMLElement>;
 };
 
 export function ControlSheet({
@@ -35,24 +35,10 @@ export function ControlSheet({
   compassReading,
   onToggleCompass,
   compactPreferred = false,
-  onHeightChange
+  ref
 }: ControlSheetProps) {
-  const sheetRef = useRef<HTMLElement | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [rotationExpanded, setRotationExpanded] = useState(false);
-
-  useEffect(() => {
-    const sheet = sheetRef.current;
-    if (!sheet || !onHeightChange) return undefined;
-
-    const observer = new ResizeObserver(() => onHeightChange(sheet.offsetHeight));
-    observer.observe(sheet);
-
-    return () => {
-      observer.disconnect();
-      onHeightChange(0);
-    };
-  }, [onHeightChange]);
 
   useEffect(() => {
     if (compactPreferred) {
@@ -62,7 +48,7 @@ export function ControlSheet({
   }, [compactPreferred]);
 
   return (
-    <section ref={sheetRef} className={`control-sheet ${expanded ? "is-expanded" : "is-compact"}`} aria-label="Map alignment controls">
+    <section ref={ref} className={`control-sheet ${expanded ? "is-expanded" : "is-compact"}`} aria-label="Map alignment controls">
       <button
         className="sheet-handle"
         type="button"
@@ -82,7 +68,11 @@ export function ControlSheet({
         </button>
       ) : null}
 
-      {!expanded && message ? <p className="status-message compact-status-message">{message}</p> : null}
+      {!expanded && message ? (
+        <p className="status-message compact-status-message" role="status">
+          {message}
+        </p>
+      ) : null}
 
       <div className="command-row">
         <button
@@ -137,7 +127,11 @@ export function ControlSheet({
             <LocateFixed aria-hidden="true" size={18} />
             {isLocating ? "Finding location" : "Use my location"}
           </button>
-          {message ? <p className="status-message">{message}</p> : null}
+          {message ? (
+            <p className="status-message" role="status">
+              {message}
+            </p>
+          ) : null}
           <CitySearch onSelect={onSelectLocation} />
           <p className="privacy-note">
             Your location is used only on this device to calculate the Qibla line. It is not stored by this app.

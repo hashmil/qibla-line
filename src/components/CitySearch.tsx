@@ -50,8 +50,9 @@ export function CitySearch({ onSelect, compact = false }: CitySearchProps) {
       return;
     }
 
-    const parsedLat = Number(trimmedLat);
-    const parsedLon = Number(trimmedLon);
+    // Locales with a decimal comma get a comma on the decimal keypad.
+    const parsedLat = Number(trimmedLat.replace(",", "."));
+    const parsedLon = Number(trimmedLon.replace(",", "."));
 
     if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLon)) {
       setManualError("Enter numbers for latitude and longitude.");
@@ -84,16 +85,12 @@ export function CitySearch({ onSelect, compact = false }: CitySearchProps) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           type="search"
-          role="combobox"
-          aria-autocomplete="list"
           aria-controls={resultsId}
-          aria-expanded={matches.length > 0}
-          aria-haspopup="listbox"
           autoComplete="off"
           placeholder="Search city or country"
         />
       </div>
-      <div className="city-results" id={resultsId} role="listbox" aria-label="City suggestions">
+      <div className="city-results" id={resultsId} role="group" aria-label="City suggestions">
         {matches.map((city) => {
           const label = cityLabel(city);
           return (
@@ -101,9 +98,8 @@ export function CitySearch({ onSelect, compact = false }: CitySearchProps) {
               key={`${city.city}-${city.country}`}
               type="button"
               onClick={() => chooseCity(city)}
-              role="option"
               aria-label={label}
-              aria-selected={query === label}
+              aria-pressed={query === label}
             >
               <MapPin aria-hidden="true" size={16} />
               <span>
@@ -146,7 +142,11 @@ export function CitySearch({ onSelect, compact = false }: CitySearchProps) {
             />
           </label>
           <button type="submit">Use coordinates</button>
-          {manualError ? <p className="form-error">{manualError}</p> : null}
+          {manualError ? (
+            <p className="form-error" role="alert">
+              {manualError}
+            </p>
+          ) : null}
         </form>
       ) : null}
     </div>

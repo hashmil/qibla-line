@@ -54,7 +54,7 @@ export function CompassOverlay({
       <div className="compass-map-follow">
         <span>Map follows phone</span>
       </div>
-      <div className="qibla-cue" role="status">
+      <div className="qibla-cue">
         <span className="kaaba-symbol" aria-hidden="true" />
         <p>{instruction}</p>
       </div>

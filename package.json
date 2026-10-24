@@ -3,15 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "packageManager": "bun@1.3.14",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "check:clean": "test -z \"$(git status --porcelain --untracked-files=no)\"",
-    "deploy:pages": "npm run build && npm run check:clean && npx wrangler pages deploy dist --project-name qibla-line --branch main",
-    "deploy:workers": "npm run build && npx wrangler deploy",
-    "deploy": "npm run deploy:pages"
+    "deploy:pages": "bun run build && bun run check:clean && bunx wrangler pages deploy dist --project-name qibla-line --branch main",
+    "deploy:workers": "bun run build && bunx wrangler deploy",
+    "deploy": "bun run deploy:pages"
   },
   "dependencies": {
     "lucide-react": "1.21.0",

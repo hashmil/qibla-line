@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { DEFAULT_CITY } from "./data/cities";
 import { calculateQibla, normalise180 } from "./lib/qibla";
 import { getCompassReading, requestCompassPermission } from "./lib/compass";
+import { NO_INSETS, sameInsets, type ViewInsets } from "./lib/viewport";
 import type { AppLocation, CompassReading, CompassStatus } from "./types";
 import { ControlSheet } from "./components/ControlSheet";
 import { CompassOverlay } from "./components/CompassOverlay";
-import { MapView, type MapViewHandle, type ViewInsets } from "./components/MapView";
+import { MapView, type MapViewHandle } from "./components/MapView";
 import { PermissionPanel } from "./components/PermissionPanel";
 import { RecentrePill } from "./components/RecentrePill";
 import { StatusPill } from "./components/StatusPill";
@@ -17,22 +18,10 @@ const DEFAULT_LOCATION: AppLocation = {
   source: "fallback"
 };
 
+// Matches the breakpoint in global.css where the control sheet moves to the right-hand side.
 const WIDE_LAYOUT_QUERY = "(min-width: 720px)";
-// Space taken by the status pill at the top, and on wide screens by the 390 px
-// control sheet pinned 18 px from the right edge.
-const STATUS_PILL_INSET = 64;
-const WIDE_SHEET_INSET = 426;
-const SHEET_GAP = 10;
-
-function subscribeToWideLayout(onChange: () => void) {
-  const query = window.matchMedia(WIDE_LAYOUT_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-function isWideLayout() {
-  return window.matchMedia(WIDE_LAYOUT_QUERY).matches;
-}
+const COMPASS_TIMEOUT_MS = 4000;
+const TRANSIENT_MESSAGE_MS = 4000;
 
 function recentreLabel(location: AppLocation): string {
   if (location.source === "geolocation") return "Centre on me";
@@ -93,6 +82,10 @@ export default function App() {
   const compassRequestIdRef = useRef(0);
   const pendingCompassReadingRef = useRef<CompassReading | null>(null);
   const compassFrameRef = useRef<number | null>(null);
+  const messageTimerRef = useRef<number | null>(null);
+  const shellRef = useRef<HTMLElement | null>(null);
+  const statusPillRef = useRef<HTMLElement | null>(null);
+  const controlSheetRef = useRef<HTMLElement | null>(null);
   const [location, setLocation] = useState<AppLocation>(DEFAULT_LOCATION);
   const [mapBearing, setMapBearing] = useState(0);
   const [introVisible, setIntroVisible] = useState(true);
@@ -101,26 +94,62 @@ export default function App() {
   const [compassStatus, setCompassStatus] = useState<CompassStatus>("idle");
   const [compassReading, setCompassReading] = useState<CompassReading | null>(null);
   const [locationInView, setLocationInView] = useState(true);
-  const [sheetHeight, setSheetHeight] = useState(0);
-  const wideLayout = useSyncExternalStore(subscribeToWideLayout, isWideLayout);
+  const [mapInsets, setMapInsets] = useState<ViewInsets>(NO_INSETS);
 
   const qibla = useMemo(() => calculateQibla(location), [location]);
   const relativeBearing = normalise180(qibla.bearing - mapBearing);
   const compassActive = compassStatus === "active" || compassStatus === "requesting";
-  const visibilityInsets = useMemo<ViewInsets>(
-    () =>
-      wideLayout
-        ? { top: STATUS_PILL_INSET, right: WIDE_SHEET_INSET, bottom: 0, left: 0 }
-        : { top: STATUS_PILL_INSET, right: 0, bottom: sheetHeight + SHEET_GAP, left: 0 },
-    [wideLayout, sheetHeight]
+
+  // Measures how much of the map the status pill and control sheet cover, so the
+  // camera can centre in the visible area and the recentre pill knows when to show.
+  useLayoutEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) return undefined;
+
+    const measure = () => {
+      const bounds = shell.getBoundingClientRect();
+      const pill = statusPillRef.current?.getBoundingClientRect();
+      const sheet = controlSheetRef.current?.getBoundingClientRect();
+      const sheetOnSide = window.matchMedia(WIDE_LAYOUT_QUERY).matches;
+      const next: ViewInsets = {
+        top: pill ? Math.max(0, Math.round(pill.bottom - bounds.top)) : 0,
+        right: sheet && sheetOnSide ? Math.max(0, Math.round(bounds.right - sheet.left)) : 0,
+        bottom: sheet && !sheetOnSide ? Math.max(0, Math.round(bounds.bottom - sheet.top)) : 0,
+        left: 0
+      };
+
+      setMapInsets((current) => (sameInsets(current, next) ? current : next));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    for (const element of [shell, statusPillRef.current, controlSheetRef.current]) {
+      if (element) observer.observe(element);
+    }
+    window.addEventListener("resize", measure);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [introVisible]);
+
+  useEffect(
+    () => () => {
+      if (messageTimerRef.current !== null) window.clearTimeout(messageTimerRef.current);
+    },
+    []
   );
 
   useEffect(() => {
     if (compassStatus !== "active") return undefined;
 
+    let receivedHeading = false;
     const handleOrientation = (event: DeviceOrientationEvent) => {
       const nextReading = getCompassReading(event);
-      if (nextReading) {
+      // Relative readings start from an arbitrary zero, so they cannot point the map north.
+      if (nextReading && nextReading.source !== "relative") {
+        receivedHeading = true;
         pendingCompassReadingRef.current = preferCompassReading(pendingCompassReadingRef.current, nextReading);
 
         if (compassFrameRef.current !== null) return;
@@ -143,7 +172,15 @@ export default function App() {
     window.addEventListener("deviceorientationabsolute", handleOrientation);
     window.addEventListener("deviceorientation", handleOrientation);
 
+    // Desktops and phones without a magnetometer never send a usable heading.
+    const timeout = window.setTimeout(() => {
+      if (receivedHeading) return;
+      compassRequestIdRef.current += 1;
+      setCompassStatus("unsupported");
+    }, COMPASS_TIMEOUT_MS);
+
     return () => {
+      window.clearTimeout(timeout);
       window.removeEventListener("deviceorientationabsolute", handleOrientation);
       window.removeEventListener("deviceorientation", handleOrientation);
       pendingCompassReadingRef.current = null;
@@ -155,16 +192,19 @@ export default function App() {
   }, [compassStatus]);
 
   useEffect(() => {
-    // If location access was already granted on a previous visit, locate straight away
-    // instead of opening on the fallback city behind the intro panel.
+    // If location access was already granted on a previous visit, locate straight away.
+    // The intro stays up showing "Finding location" so the fallback city is never
+    // presented as the user's position.
     let cancelled = false;
+    const requestId = locationRequestIdRef.current;
 
     navigator.permissions
       ?.query({ name: "geolocation" })
       .then((permission) => {
         if (cancelled || permission.state !== "granted") return;
-        setIntroVisible(false);
-        useBrowserLocation();
+        // The user picked a city or asked for location while we were checking.
+        if (locationRequestIdRef.current !== requestId) return;
+        locateUser();
       })
       .catch(() => undefined);
 
@@ -173,27 +213,43 @@ export default function App() {
     };
   }, []);
 
+  function showMessage(text: string, transient = false) {
+    if (messageTimerRef.current !== null) {
+      window.clearTimeout(messageTimerRef.current);
+      messageTimerRef.current = null;
+    }
+
+    setMessage(text);
+
+    if (transient) {
+      messageTimerRef.current = window.setTimeout(() => {
+        messageTimerRef.current = null;
+        setMessage("");
+      }, TRANSIENT_MESSAGE_MS);
+    }
+  }
+
   function selectLocation(nextLocation: AppLocation) {
     locationRequestIdRef.current += 1;
     setLocation(nextLocation);
     setIntroVisible(false);
     setIsLocating(false);
-    setMessage("");
+    showMessage("");
   }
 
-  function useBrowserLocation() {
+  function locateUser() {
     const requestId = locationRequestIdRef.current + 1;
     locationRequestIdRef.current = requestId;
 
     if (!("geolocation" in navigator) || (!window.isSecureContext && window.location.hostname !== "localhost")) {
       setIntroVisible(false);
       setIsLocating(false);
-      setMessage(geolocationErrorMessage(null));
+      showMessage(geolocationErrorMessage(null));
       return;
     }
 
     setIsLocating(true);
-    setMessage("");
+    showMessage("");
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -208,10 +264,11 @@ export default function App() {
         });
         setIntroVisible(false);
         setIsLocating(false);
-        setMessage(
+        showMessage(
           position.coords.accuracy
             ? `Location found within about ${Math.round(position.coords.accuracy)} m.`
-            : "Location found."
+            : "Location found.",
+          true
         );
       },
       (error) => {
@@ -219,7 +276,7 @@ export default function App() {
 
         setIntroVisible(false);
         setIsLocating(false);
-        setMessage(geolocationErrorMessage(error));
+        showMessage(geolocationErrorMessage(error));
       },
       {
         enableHighAccuracy: true,
@@ -259,16 +316,29 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell" style={{ "--control-sheet-height": `${sheetHeight}px` } as CSSProperties}>
+    <main
+      ref={shellRef}
+      className="app-shell"
+      style={
+        {
+          "--map-inset-top": `${mapInsets.top}px`,
+          "--map-inset-right": `${mapInsets.right}px`,
+          "--map-inset-bottom": `${mapInsets.bottom}px`,
+          "--map-inset-left": `${mapInsets.left}px`
+        } as CSSProperties
+      }
+    >
+      {!introVisible ? <h1 className="visually-hidden">Qibla Line</h1> : null}
       <MapView
         ref={mapRef}
         location={location}
         followHeading={compassStatus === "active" && compassReading ? compassReading.heading : null}
-        visibilityInsets={visibilityInsets}
+        insets={mapInsets}
         onBearingChange={setMapBearing}
         onLocationVisibilityChange={setLocationInView}
       />
       <StatusPill
+        ref={statusPillRef}
         bearing={qibla.bearing}
         distanceKm={qibla.distanceKm}
         mapBearing={mapBearing}
@@ -286,7 +356,7 @@ export default function App() {
 
       {introVisible ? (
         <PermissionPanel
-          onUseLocation={useBrowserLocation}
+          onUseLocation={locateUser}
           onSelectCity={selectLocation}
           statusMessage={message}
           isLocating={isLocating}
@@ -301,6 +371,7 @@ export default function App() {
 
       {!introVisible ? (
         <ControlSheet
+          ref={controlSheetRef}
           onRotate={(degrees) => {
             stopCompassFollow();
             mapRef.current?.rotateBy(degrees);
@@ -315,7 +386,7 @@ export default function App() {
           }}
           onRecentre={() => mapRef.current?.recentre()}
           onSelectLocation={selectLocation}
-          onUseLocation={useBrowserLocation}
+          onUseLocation={locateUser}
           isLocating={isLocating}
           message={message}
           showUseLocationShortcut={location.source !== "geolocation" && !compassActive}
@@ -323,7 +394,6 @@ export default function App() {
           compassReading={compassReading}
           onToggleCompass={toggleCompass}
           compactPreferred={compassActive}
-          onHeightChange={setSheetHeight}
         />
       ) : null}
     </main>

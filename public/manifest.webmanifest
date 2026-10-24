@@ -1,11 +1,11 @@
 {
+  "id": "/",
   "name": "Qibla Line",
   "short_name": "Qibla Line",
   "description": "A private, map-first Qibla direction tool with manual map alignment.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0b1110",
   "theme_color": "#0b1110",
   "icons": [
@@ -13,20 +13,19 @@
       "src": "/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
-

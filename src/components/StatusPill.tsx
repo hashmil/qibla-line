@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, Navigation, RotateCw, Route } from "lucide-react";
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import { formatBearing, formatDistance, formatMapRotation, formatRelativeBearing } from "../lib/format";
 
 type StatusPillProps = {
@@ -8,6 +8,7 @@ type StatusPillProps = {
   mapBearing: number;
   relativeBearing: number;
   locationLabel: string;
+  ref?: Ref<HTMLElement>;
 };
 
 export function StatusPill({
@@ -15,12 +16,13 @@ export function StatusPill({
   distanceKm,
   mapBearing,
   relativeBearing,
-  locationLabel
+  locationLabel,
+  ref
 }: StatusPillProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <section className={`status-pill ${expanded ? "is-expanded" : "is-compact"}`} aria-label="Qibla status">
+    <section ref={ref} className={`status-pill ${expanded ? "is-expanded" : "is-compact"}`} aria-label="Qibla status">
       <button className="status-summary" type="button" onClick={() => setExpanded((open) => !open)} aria-expanded={expanded}>
         <span className="status-location">
           <Navigation aria-hidden="true" size={15} />

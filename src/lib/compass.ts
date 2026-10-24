@@ -2,7 +2,7 @@ import type { CompassReading } from "../types";
 import { normalise360 } from "./qibla";
 
 type DeviceOrientationEventWithPermission = typeof DeviceOrientationEvent & {
-  requestPermission?: (absolute?: boolean) => Promise<PermissionState>;
+  requestPermission?: () => Promise<PermissionState>;
 };
 
 type CompassEvent = DeviceOrientationEvent & {
@@ -28,13 +28,9 @@ export async function requestCompassPermission(): Promise<"granted" | "denied" |
 
   const orientationEvent = DeviceOrientationEvent as DeviceOrientationEventWithPermission;
   if (typeof orientationEvent.requestPermission === "function") {
-    try {
-      const permission = await orientationEvent.requestPermission(true);
-      return permission === "granted" ? "granted" : "denied";
-    } catch {
-      const permission = await orientationEvent.requestPermission();
-      return permission === "granted" ? "granted" : "denied";
-    }
+    // iOS only honours this inside the tap that triggered it, so there is no point retrying.
+    const permission = await orientationEvent.requestPermission();
+    return permission === "granted" ? "granted" : "denied";
   }
 
   return "granted";
@@ -44,20 +40,22 @@ export function getCompassReading(event: DeviceOrientationEvent): CompassReading
   const compassEvent = event as CompassEvent;
   const screenAngle = getScreenOrientationAngle();
 
-  if (typeof compassEvent.webkitCompassHeading === "number") {
+  if (Number.isFinite(compassEvent.webkitCompassHeading)) {
     const reading: CompassReading = {
-      heading: normalise360(compassEvent.webkitCompassHeading + screenAngle),
+      heading: normalise360(compassEvent.webkitCompassHeading! + screenAngle),
       source: "webkit"
     };
 
-    if (typeof compassEvent.webkitCompassAccuracy === "number") {
-      reading.accuracy = compassEvent.webkitCompassAccuracy;
+    // iOS reports -1 while the compass is uncalibrated.
+    const accuracy = compassEvent.webkitCompassAccuracy;
+    if (typeof accuracy === "number" && Number.isFinite(accuracy) && accuracy >= 0) {
+      reading.accuracy = accuracy;
     }
 
     return reading;
   }
 
-  if (typeof event.alpha === "number") {
+  if (typeof event.alpha === "number" && Number.isFinite(event.alpha)) {
     return {
       heading: normalise360(360 - event.alpha + screenAngle),
       source: event.absolute ? "absolute" : "relative"

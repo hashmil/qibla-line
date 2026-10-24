@@ -34,7 +34,11 @@ export function PermissionPanel({
         Your location is used only in this browser to calculate the Qibla line.
       </p>
 
-      {statusMessage ? <p className="status-message">{statusMessage}</p> : null}
+      {statusMessage ? (
+        <p className="status-message" role="status">
+          {statusMessage}
+        </p>
+      ) : null}
 
       <button
         className="choose-city-toggle"

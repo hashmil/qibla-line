@@ -4,6 +4,7 @@ import type { AppLocation } from "../types";
 import { KAABA } from "../lib/qibla";
 import { createQiblaLineCollection } from "../lib/geo";
 import { createRasterStyle } from "../lib/mapStyle";
+import { NO_INSETS, isPointInView, locationZoom, sameInsets, type ViewInsets } from "../lib/viewport";
 
 export type MapViewHandle = {
   rotateBy: (degrees: number) => void;
@@ -12,23 +13,13 @@ export type MapViewHandle = {
   recentre: () => void;
 };
 
-export type ViewInsets = {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-};
-
 type MapViewProps = {
   location: AppLocation;
   followHeading?: number | null;
-  visibilityInsets?: ViewInsets;
+  insets?: ViewInsets;
   onBearingChange: (bearing: number) => void;
   onLocationVisibilityChange?: (visible: boolean) => void;
 };
-
-const NO_INSETS: ViewInsets = { top: 0, right: 0, bottom: 0, left: 0 };
-const MARKER_MARGIN = 12;
 
 const LINE_SOURCE_ID = "qibla-line-source";
 
@@ -41,7 +32,7 @@ function createMarkerElement(className: string, label: string): HTMLElement {
 }
 
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
-  { location, followHeading = null, visibilityInsets = NO_INSETS, onBearingChange, onLocationVisibilityChange },
+  { location, followHeading = null, insets = NO_INSETS, onBearingChange, onLocationVisibilityChange },
   ref
 ) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -50,13 +41,14 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   const kaabaMarkerRef = useRef<Marker | null>(null);
   const loadedRef = useRef(false);
   const previousSourceRef = useRef(location.source);
+  const targetBearingRef = useRef<number | null>(null);
   const locationRef = useRef(location);
-  const insetsRef = useRef(visibilityInsets);
+  const insetsRef = useRef(insets);
   const visibilityCallbackRef = useRef(onLocationVisibilityChange);
   const [mapError, setMapError] = useState("");
 
   locationRef.current = location;
-  insetsRef.current = visibilityInsets;
+  insetsRef.current = insets;
   visibilityCallbackRef.current = onLocationVisibilityChange;
 
   // Reports whether the location marker sits in the part of the map not covered by panels.
@@ -66,16 +58,21 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     if (!map || !report) return;
 
     const { lon, lat } = locationRef.current;
-    const insets = insetsRef.current;
     const container = map.getContainer();
-    const point = map.project([lon, lat]);
-
     report(
-      point.x >= insets.left + MARKER_MARGIN &&
-        point.x <= container.clientWidth - insets.right - MARKER_MARGIN &&
-        point.y >= insets.top + MARKER_MARGIN &&
-        point.y <= container.clientHeight - insets.bottom - MARKER_MARGIN
+      isPointInView(
+        map.project([lon, lat]),
+        { width: container.clientWidth, height: container.clientHeight },
+        insetsRef.current
+      )
     );
+  }
+
+  function easeBearing(bearing: number, duration: number) {
+    // Set the target after easeTo: interrupting the previous ease fires moveend
+    // synchronously, which clears the target.
+    mapRef.current?.easeTo({ bearing, duration });
+    targetBearingRef.current = bearing;
   }
 
   useImperativeHandle(
@@ -84,24 +81,30 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       rotateBy(degrees: number) {
         const map = mapRef.current;
         if (!map) return;
-        map.easeTo({ bearing: map.getBearing() + degrees, duration: 180 });
+        // Build on the pending target so quick taps add up instead of restarting mid-ease.
+        easeBearing((targetBearingRef.current ?? map.getBearing()) + degrees, 180);
       },
       setNorthUp() {
-        mapRef.current?.easeTo({ bearing: 0, duration: 260 });
+        easeBearing(0, 260);
       },
       setQiblaUp(bearing: number) {
-        mapRef.current?.easeTo({ bearing, duration: 320 });
+        easeBearing(bearing, 320);
       },
       recentre() {
+        const map = mapRef.current;
+        if (!map) return;
+
+        const current = locationRef.current;
         visibilityCallbackRef.current?.(true);
-        mapRef.current?.easeTo({
-          center: [location.lon, location.lat],
-          zoom: location.source === "geolocation" ? 17 : 13,
+        map.easeTo({
+          center: [current.lon, current.lat],
+          zoom: Math.max(map.getZoom(), locationZoom(current)),
+          padding: insetsRef.current,
           duration: 360
         });
       }
     }),
-    [location, onBearingChange]
+    []
   );
 
   useEffect(() => {
@@ -114,7 +117,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         container: mapContainerRef.current,
         style: createRasterStyle(),
         center: [location.lon, location.lat],
-        zoom: location.source === "geolocation" ? 16 : 12,
+        zoom: locationZoom(location),
         bearing: 0,
         pitch: 0,
         minZoom: 2,
@@ -133,20 +136,24 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
 
     const updateBearing = () => onBearingChange(map.getBearing());
     map.on("rotate", updateBearing);
-    map.on("moveend", updateBearing);
+    map.on("moveend", () => {
+      targetBearingRef.current = null;
+      updateBearing();
+      reportLocationVisibility();
+    });
     // Programmatic camera moves only report once they settle, so the recentre
     // prompt does not flicker on while the map flies to a new location.
     map.on("move", (event) => {
       if (event.originalEvent) reportLocationVisibility();
     });
-    map.on("moveend", reportLocationVisibility);
     map.on("resize", reportLocationVisibility);
 
     map.on("load", () => {
+      const current = locationRef.current;
       loadedRef.current = true;
       map.addSource(LINE_SOURCE_ID, {
         type: "geojson",
-        data: createQiblaLineCollection(location),
+        data: createQiblaLineCollection(current),
         lineMetrics: true
       });
 
@@ -192,7 +199,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         element: createMarkerElement("map-marker user-marker", "Current or selected location"),
         anchor: "center"
       })
-        .setLngLat([location.lon, location.lat])
+        .setLngLat([current.lon, current.lat])
         .addTo(map);
 
       kaabaMarkerRef.current = new maplibregl.Marker({
@@ -208,12 +215,15 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     return () => {
       map.remove();
       mapRef.current = null;
+      loadedRef.current = false;
+      userMarkerRef.current = null;
+      kaabaMarkerRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map) return undefined;
 
     // Leaving the fallback city is the first real fix, so jump there rather than
     // sweeping across the map from the default view.
@@ -224,10 +234,12 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       const source = map.getSource(LINE_SOURCE_ID) as GeoJSONSource | undefined;
       source?.setData(createQiblaLineCollection(location));
       userMarkerRef.current?.setLngLat([location.lon, location.lat]);
-      kaabaMarkerRef.current?.setLngLat([KAABA.lon, KAABA.lat]);
+      visibilityCallbackRef.current?.(true);
+
       const camera = {
         center: [location.lon, location.lat] as [number, number],
-        zoom: location.source === "geolocation" ? 17 : 13
+        zoom: locationZoom(location),
+        padding: insetsRef.current
       };
 
       if (animate) {
@@ -239,26 +251,56 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
 
     if (loadedRef.current) {
       updateMapData();
-    } else {
-      map.once("load", updateMapData);
+      return undefined;
     }
+
+    map.once("load", updateMapData);
+    return () => {
+      map.off("load", updateMapData);
+    };
   }, [location]);
 
+  // Pad the camera by the panels so "centre" means the centre of the visible map.
+  // Waits for any camera move to settle so it never cuts an ease short.
   useEffect(() => {
-    if (loadedRef.current) reportLocationVisibility();
-  }, [visibilityInsets]);
+    const map = mapRef.current;
+    if (!map) return undefined;
+
+    const applyPadding = () => {
+      if (map.isMoving()) {
+        map.once("moveend", applyPadding);
+        return;
+      }
+
+      if (sameInsets(map.getPadding(), insets)) {
+        reportLocationVisibility();
+      } else {
+        map.easeTo({ padding: insets, duration: 240 });
+      }
+    };
+
+    if (loadedRef.current) {
+      applyPadding();
+    } else {
+      map.once("load", applyPadding);
+    }
+
+    return () => {
+      map.off("load", applyPadding);
+      map.off("moveend", applyPadding);
+    };
+  }, [insets]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || followHeading === null) return;
+    // Skip while an ease runs: setBearing would cancel it and strand the camera.
+    if (!map || followHeading === null || map.isEasing()) return;
 
     map.setBearing(followHeading);
-    map.triggerRepaint();
-    onBearingChange(map.getBearing());
-  }, [followHeading, onBearingChange]);
+  }, [followHeading]);
 
   return (
-    <div className="map-shell" aria-label="Map showing Qibla line">
+    <div className="map-shell" role="region" aria-label="Map showing Qibla line">
       <div ref={mapContainerRef} className="map-container" />
       {mapError ? (
         <div className="map-fallback" role="status">
