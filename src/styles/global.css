@@ -420,6 +420,56 @@ h1 {
   max-height: 225px;
 }
 
+.recentre-pill {
+  position: fixed;
+  z-index: 7;
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  bottom: calc(max(10px, env(safe-area-inset-bottom)) + var(--control-sheet-height, 0px) + 10px);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: calc(100% - 20px);
+  min-height: 42px;
+  margin: 0 auto;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-strong);
+  color: var(--teal-strong);
+  box-shadow: var(--shadow);
+  font-size: 0.84rem;
+  font-weight: 820;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    visibility 0s linear 180ms;
+}
+
+.recentre-pill span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentre-pill.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    visibility 0s;
+}
+
+.recentre-pill:active {
+  transform: translateY(1px) scale(0.98);
+}
+
 .sheet-handle {
   width: 100%;
   justify-content: center;
@@ -893,6 +943,12 @@ h1 {
     right: 18px;
     width: 390px;
     margin: 0;
+  }
+
+  .recentre-pill {
+    left: 18px;
+    right: 426px;
+    bottom: max(18px, env(safe-area-inset-bottom));
   }
 
   .status-pill {

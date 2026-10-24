@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { DEFAULT_CITY } from "./data/cities";
 import { calculateQibla, normalise180 } from "./lib/qibla";
 import { getCompassReading, requestCompassPermission } from "./lib/compass";
 import type { AppLocation, CompassReading, CompassStatus } from "./types";
 import { ControlSheet } from "./components/ControlSheet";
 import { CompassOverlay } from "./components/CompassOverlay";
-import { MapView, type MapViewHandle } from "./components/MapView";
+import { MapView, type MapViewHandle, type ViewInsets } from "./components/MapView";
 import { PermissionPanel } from "./components/PermissionPanel";
+import { RecentrePill } from "./components/RecentrePill";
 import { StatusPill } from "./components/StatusPill";
 
 const DEFAULT_LOCATION: AppLocation = {
@@ -15,6 +16,29 @@ const DEFAULT_LOCATION: AppLocation = {
   lon: DEFAULT_CITY.lon,
   source: "fallback"
 };
+
+const WIDE_LAYOUT_QUERY = "(min-width: 720px)";
+// Space taken by the status pill at the top, and on wide screens by the 390 px
+// control sheet pinned 18 px from the right edge.
+const STATUS_PILL_INSET = 64;
+const WIDE_SHEET_INSET = 426;
+const SHEET_GAP = 10;
+
+function subscribeToWideLayout(onChange: () => void) {
+  const query = window.matchMedia(WIDE_LAYOUT_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function isWideLayout() {
+  return window.matchMedia(WIDE_LAYOUT_QUERY).matches;
+}
+
+function recentreLabel(location: AppLocation): string {
+  if (location.source === "geolocation") return "Centre on me";
+  if (location.source === "manual") return "Centre on pin";
+  return `Centre on ${location.label.split(",")[0]}`;
+}
 
 const COMPASS_SOURCE_PRIORITY: Record<CompassReading["source"], number> = {
   relative: 0,
@@ -76,10 +100,20 @@ export default function App() {
   const [message, setMessage] = useState("");
   const [compassStatus, setCompassStatus] = useState<CompassStatus>("idle");
   const [compassReading, setCompassReading] = useState<CompassReading | null>(null);
+  const [locationInView, setLocationInView] = useState(true);
+  const [sheetHeight, setSheetHeight] = useState(0);
+  const wideLayout = useSyncExternalStore(subscribeToWideLayout, isWideLayout);
 
   const qibla = useMemo(() => calculateQibla(location), [location]);
   const relativeBearing = normalise180(qibla.bearing - mapBearing);
   const compassActive = compassStatus === "active" || compassStatus === "requesting";
+  const visibilityInsets = useMemo<ViewInsets>(
+    () =>
+      wideLayout
+        ? { top: STATUS_PILL_INSET, right: WIDE_SHEET_INSET, bottom: 0, left: 0 }
+        : { top: STATUS_PILL_INSET, right: 0, bottom: sheetHeight + SHEET_GAP, left: 0 },
+    [wideLayout, sheetHeight]
+  );
 
   useEffect(() => {
     if (compassStatus !== "active") return undefined;
@@ -119,6 +153,25 @@ export default function App() {
       }
     };
   }, [compassStatus]);
+
+  useEffect(() => {
+    // If location access was already granted on a previous visit, locate straight away
+    // instead of opening on the fallback city behind the intro panel.
+    let cancelled = false;
+
+    navigator.permissions
+      ?.query({ name: "geolocation" })
+      .then((permission) => {
+        if (cancelled || permission.state !== "granted") return;
+        setIntroVisible(false);
+        useBrowserLocation();
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function selectLocation(nextLocation: AppLocation) {
     locationRequestIdRef.current += 1;
@@ -206,12 +259,14 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" style={{ "--control-sheet-height": `${sheetHeight}px` } as CSSProperties}>
       <MapView
         ref={mapRef}
         location={location}
         followHeading={compassStatus === "active" && compassReading ? compassReading.heading : null}
+        visibilityInsets={visibilityInsets}
         onBearingChange={setMapBearing}
+        onLocationVisibilityChange={setLocationInView}
       />
       <StatusPill
         bearing={qibla.bearing}
@@ -238,6 +293,12 @@ export default function App() {
         />
       ) : null}
 
+      <RecentrePill
+        visible={!introVisible && !compassActive && !locationInView}
+        label={recentreLabel(location)}
+        onRecentre={() => mapRef.current?.recentre()}
+      />
+
       {!introVisible ? (
         <ControlSheet
           onRotate={(degrees) => {
@@ -262,6 +323,7 @@ export default function App() {
           compassReading={compassReading}
           onToggleCompass={toggleCompass}
           compactPreferred={compassActive}
+          onHeightChange={setSheetHeight}
         />
       ) : null}
     </main>

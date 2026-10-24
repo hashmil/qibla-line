@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, LocateFixed, Rotate3D, RotateCcw, RotateCw, Route } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AppLocation, CompassReading, CompassStatus } from "../types";
 import { CitySearch } from "./CitySearch";
 import { CompassToggle } from "./CompassToggle";
@@ -18,6 +18,7 @@ type ControlSheetProps = {
   compassReading: CompassReading | null;
   onToggleCompass: () => void;
   compactPreferred?: boolean;
+  onHeightChange?: (height: number) => void;
 };
 
 export function ControlSheet({
@@ -33,10 +34,25 @@ export function ControlSheet({
   compassStatus,
   compassReading,
   onToggleCompass,
-  compactPreferred = false
+  compactPreferred = false,
+  onHeightChange
 }: ControlSheetProps) {
+  const sheetRef = useRef<HTMLElement | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [rotationExpanded, setRotationExpanded] = useState(false);
+
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!sheet || !onHeightChange) return undefined;
+
+    const observer = new ResizeObserver(() => onHeightChange(sheet.offsetHeight));
+    observer.observe(sheet);
+
+    return () => {
+      observer.disconnect();
+      onHeightChange(0);
+    };
+  }, [onHeightChange]);
 
   useEffect(() => {
     if (compactPreferred) {
@@ -46,7 +62,7 @@ export function ControlSheet({
   }, [compactPreferred]);
 
   return (
-    <section className={`control-sheet ${expanded ? "is-expanded" : "is-compact"}`} aria-label="Map alignment controls">
+    <section ref={sheetRef} className={`control-sheet ${expanded ? "is-expanded" : "is-compact"}`} aria-label="Map alignment controls">
       <button
         className="sheet-handle"
         type="button"
