@@ -11,6 +11,7 @@ import { InstallSheet } from "./components/InstallSheet";
 import { MapButtons } from "./components/MapButtons";
 import { MapView, type MapViewHandle } from "./components/MapView";
 import { PlacePanel } from "./components/PlacePanel";
+import { RecentreButton } from "./components/RecentreButton";
 import { TopBar, type Step } from "./components/TopBar";
 
 const DEFAULT_LOCATION: AppLocation = {
@@ -88,6 +89,12 @@ function compassHelp(status: CompassStatus, reading: CompassReading | null): str
 
 type GyroStatus = "off" | "requesting" | "starting" | "active" | "denied" | "unsupported";
 
+function recentreLabel(location: AppLocation): string {
+  if (location.source === "geolocation") return "Centre on me";
+  if (location.source === "manual") return "Centre on pin";
+  return `Centre on ${location.label}`;
+}
+
 function useHeight(ref: RefObject<HTMLElement | null>, key: unknown): number {
   const [height, setHeight] = useState(0);
 
@@ -126,12 +133,34 @@ export default function App() {
   const [gyroStatus, setGyroStatus] = useState<GyroStatus>("off");
   const [flat, setFlat] = useState(true);
   const [gridActive, setGridActive] = useState(false);
+  const [locationInView, setLocationInView] = useState(true);
   const matchedBearingRef = useRef(0);
   const trackerRef = useRef(createTurnTracker());
 
   const install = usePwaInstall();
   const [installOpen, setInstallOpen] = useState(false);
   const autoInstallCheckedRef = useRef(false);
+
+  // If location access was granted on an earlier visit, find the user straight away
+  // instead of waiting on the Place step for a tap. The button shows "Finding your
+  // location" meanwhile, and picking a city first still wins.
+  useEffect(() => {
+    let cancelled = false;
+    const requestId = locationRequestIdRef.current;
+
+    navigator.permissions
+      ?.query({ name: "geolocation" })
+      .then((permission) => {
+        if (cancelled || permission.state !== "granted") return;
+        if (locationRequestIdRef.current !== requestId) return;
+        locateUser();
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // "Add to Home Screen" on the landing page links to /app?install: show the steps straight away
   useEffect(() => {
@@ -265,7 +294,7 @@ export default function App() {
     setStep("match");
   }
 
-  function useBrowserLocation() {
+  function locateUser() {
     const requestId = locationRequestIdRef.current + 1;
     locationRequestIdRef.current = requestId;
 
@@ -414,9 +443,11 @@ export default function App() {
         ref={mapRef}
         location={location}
         followHeading={compassFollowing ? compassReading.heading : null}
+        headingLive={compassFollowing || gyroStatus === "active"}
         rotationLocked={step !== "match"}
         padding={{ top: topHeight, bottom: bottomHeight }}
         onBearingChange={setMapBearing}
+        onLocationVisibilityChange={setLocationInView}
       />
 
       <TopBar
@@ -434,7 +465,7 @@ export default function App() {
 
       {step === "place" ? (
         <PlacePanel
-          onUseLocation={useBrowserLocation}
+          onUseLocation={locateUser}
           onSelectCity={selectLocation}
           message={message}
           isLocating={isLocating}
@@ -448,6 +479,14 @@ export default function App() {
           onToggleCompass={toggleCompass}
         />
       )}
+
+      {step !== "place" ? (
+        <RecentreButton
+          visible={!locationInView}
+          label={recentreLabel(location)}
+          onRecentre={() => mapRef.current?.recentre()}
+        />
+      ) : null}
 
       {step === "match" ? (
         <section ref={bottomRef} className="match-controls" aria-label="Turn the map">

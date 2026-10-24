@@ -17,9 +17,12 @@ type MapPadding = { top: number; bottom: number };
 type MapViewProps = {
   location: AppLocation;
   followHeading?: number | null;
+  // True while the compass or gyroscope turns the map every frame
+  headingLive?: boolean;
   rotationLocked: boolean;
   padding: MapPadding;
   onBearingChange: (bearing: number) => void;
+  onLocationVisibilityChange?: (visible: boolean) => void;
 };
 
 const LINE_SOURCE_ID = "qibla-line-source";
@@ -37,17 +40,55 @@ function locationZoom(location: AppLocation): number {
   return location.source === "geolocation" ? 18 : 14;
 }
 
+// How far inside the visible map the dot must sit to count as on screen
+const VISIBLE_MARGIN = 12;
+
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
-  { location, followHeading = null, rotationLocked, padding, onBearingChange },
+  {
+    location,
+    followHeading = null,
+    headingLive = false,
+    rotationLocked,
+    padding,
+    onBearingChange,
+    onLocationVisibilityChange
+  },
   ref
 ) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const userMarkerRef = useRef<Marker | null>(null);
-  const kaabaMarkerRef = useRef<Marker | null>(null);
   const loadedRef = useRef(false);
-  const flightRef = useRef<{ center: [number, number]; zoom: number } | null>(null);
+  const locationRef = useRef(location);
+  const headingLiveRef = useRef(headingLive);
+  const visibilityCallbackRef = useRef(onLocationVisibilityChange);
   const [mapError, setMapError] = useState("");
+
+  locationRef.current = location;
+  headingLiveRef.current = headingLive;
+  visibilityCallbackRef.current = onLocationVisibilityChange;
+
+  // A live heading turns the map every frame, and each turn would cut an animation
+  // short, so camera moves are instant while it runs.
+  const duration = (ms: number) => (headingLiveRef.current ? 0 : ms);
+
+  // Tells the app whether the user's dot is inside the map area the bars leave visible
+  function reportLocationVisibility() {
+    const map = mapRef.current;
+    const report = visibilityCallbackRef.current;
+    if (!map || !report) return;
+
+    const { lon, lat } = locationRef.current;
+    const point = map.project([lon, lat]);
+    const container = map.getContainer();
+    const { top = 0, bottom = 0 } = map.getPadding();
+    report(
+      point.x >= VISIBLE_MARGIN &&
+        point.x <= container.clientWidth - VISIBLE_MARGIN &&
+        point.y >= top + VISIBLE_MARGIN &&
+        point.y <= container.clientHeight - bottom - VISIBLE_MARGIN
+    );
+  }
 
   useImperativeHandle(
     ref,
@@ -56,20 +97,22 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         mapRef.current?.setBearing(bearing);
       },
       zoomIn() {
-        mapRef.current?.zoomIn({ duration: 220 });
+        mapRef.current?.zoomIn({ duration: duration(220) });
       },
       zoomOut() {
-        mapRef.current?.zoomOut({ duration: 220 });
+        mapRef.current?.zoomOut({ duration: duration(220) });
       },
       recentre() {
+        const current = locationRef.current;
+        visibilityCallbackRef.current?.(true);
         mapRef.current?.easeTo({
-          center: [location.lon, location.lat],
-          zoom: locationZoom(location),
-          duration: 360
+          center: [current.lon, current.lat],
+          zoom: locationZoom(current),
+          duration: duration(360)
         });
       }
     }),
-    [location]
+    []
   );
 
   useEffect(() => {
@@ -100,12 +143,34 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     const updateBearing = () => onBearingChange(map.getBearing());
     map.on("rotate", updateBearing);
     map.on("moveend", updateBearing);
+    // Only user drags report while moving; programmatic moves report once they settle,
+    // so the centre button doesn't flash on while the camera moves to a new place.
+    map.on("move", (event) => {
+      if (event.originalEvent) reportLocationVisibility();
+    });
+    map.on("moveend", reportLocationVisibility);
+    map.on("resize", reportLocationVisibility);
+
+    // Markers don't need the style, so they show from the first frame rather than after the map loads
+    userMarkerRef.current = new maplibregl.Marker({
+      element: createMarkerElement("map-marker user-marker", "Your selected location"),
+      anchor: "center"
+    })
+      .setLngLat([location.lon, location.lat])
+      .addTo(map);
+
+    new maplibregl.Marker({
+      element: createMarkerElement("map-marker kaaba-marker", "Kaaba"),
+      anchor: "center"
+    })
+      .setLngLat([KAABA.lon, KAABA.lat])
+      .addTo(map);
 
     map.on("load", () => {
       loadedRef.current = true;
       map.addSource(LINE_SOURCE_ID, {
         type: "geojson",
-        data: createQiblaLineCollection(location),
+        data: createQiblaLineCollection(locationRef.current),
         lineMetrics: true
       });
 
@@ -132,20 +197,6 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
           "line-width": ["interpolate", ["linear"], ["zoom"], 4, 2.4, 12, 3.6, 18, 5]
         }
       });
-
-      userMarkerRef.current = new maplibregl.Marker({
-        element: createMarkerElement("map-marker user-marker", "Your selected location"),
-        anchor: "center"
-      })
-        .setLngLat([location.lon, location.lat])
-        .addTo(map);
-
-      kaabaMarkerRef.current = new maplibregl.Marker({
-        element: createMarkerElement("map-marker kaaba-marker", "Kaaba"),
-        anchor: "center"
-      })
-        .setLngLat([KAABA.lon, KAABA.lat])
-        .addTo(map);
     });
 
     mapRef.current = map;
@@ -153,30 +204,24 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     return () => {
       map.remove();
       mapRef.current = null;
+      loadedRef.current = false;
+      userMarkerRef.current = null;
     };
   }, []);
 
+  // Go straight to a new place. The camera can move before the style loads, so the
+  // first frame of the map already shows the place, and with no flight there is
+  // nothing for a later padding change to cut short.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    const updateMapData = () => {
-      const source = map.getSource(LINE_SOURCE_ID) as GeoJSONSource | undefined;
-      source?.setData(createQiblaLineCollection(location));
-      userMarkerRef.current?.setLngLat([location.lon, location.lat]);
-      kaabaMarkerRef.current?.setLngLat([KAABA.lon, KAABA.lat]);
-      flightRef.current = { center: [location.lon, location.lat], zoom: locationZoom(location) };
-      map.easeTo({ ...flightRef.current, duration: 520 });
-      map.once("moveend", () => {
-        flightRef.current = null;
-      });
-    };
-
+    userMarkerRef.current?.setLngLat([location.lon, location.lat]);
     if (loadedRef.current) {
-      updateMapData();
-    } else {
-      map.once("load", updateMapData);
+      (map.getSource(LINE_SOURCE_ID) as GeoJSONSource | undefined)?.setData(createQiblaLineCollection(location));
     }
+    visibilityCallbackRef.current?.(true);
+    map.jumpTo({ center: [location.lon, location.lat], zoom: locationZoom(location) });
   }, [location]);
 
   useEffect(() => {
@@ -199,13 +244,19 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     if (!map) return;
 
     const next = { top: padding.top, bottom: padding.bottom, left: 0, right: 0 };
-    // Any camera change cancels a running ease, so if we're mid-flight to a new location,
-    // re-aim that flight with the new padding instead of stopping it short.
-    if (flightRef.current && map.isEasing()) {
-      map.easeTo({ ...flightRef.current, padding: next, duration: 420 });
-    } else {
+    // Any camera change cancels a running ease (zoom, recentre), so wait for it to finish
+    const apply = () => {
+      if (map.isEasing()) {
+        map.once("moveend", apply);
+        return;
+      }
       map.setPadding(next);
-    }
+    };
+
+    apply();
+    return () => {
+      map.off("moveend", apply);
+    };
   }, [padding.top, padding.bottom]);
 
   useEffect(() => {

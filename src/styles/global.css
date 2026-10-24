@@ -454,6 +454,56 @@ button:disabled {
   }
 }
 
+/* Centre button: shows once the user's dot leaves the visible map. Sits clear of the map credit. */
+
+.recentre-button {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: calc(var(--bottom-h) + 32px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 8px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    visibility 0s linear 160ms;
+}
+
+.recentre-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recentre-button.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recentre-button,
+  .recentre-button.is-visible {
+    transition: none;
+  }
+}
+
 /* Match step: dial */
 
 .match-controls {

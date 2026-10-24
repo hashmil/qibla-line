@@ -44,10 +44,11 @@ Radius 12px on buttons and cards: large touch targets used half-asleep, soft eno
 ## Components
 
 - Top bar: app name, place button, step bars, title, one line of help
-- Place panel: use-my-location, city search with each city's bearing, manual coordinates
+- Place panel: use-my-location, city search with each city's bearing, manual coordinates. Skipped when location permission was granted on an earlier visit: the app locates straight away and opens on Match
 - Dial: 360° ring with N/E/S/W, 30° labels, 5° ticks, amber Kaaba mark; drag turns the map
 - Alignment grid: 48px squares fixed to the screen from the top bar to the bottom edge (showing either side of the dial), one line through the user's dot; faint at rest, full while the map turns
 - Map buttons: zoom in, zoom out, recentre, compass
+- Centre button: "Centre on me" (or the city's name) in a panel-coloured button above the bottom control. Shows only once the user's dot has left the visible map, so it never sits on top of normal use. Neutral, not amber
 - Face card: live turn guidance from the gyroscope ("Turn right 12°", then "Facing the Qibla" in amber; one-line headline and two-line help so the card never changes height), static angle from the phone's top edge when motion isn't available, place and distance, Line up again, Change place
 - Straight-ahead mark: small triangle at the top of the map while guidance is live
 
